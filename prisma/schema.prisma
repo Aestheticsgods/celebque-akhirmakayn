@@ -1,0 +1,334 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================
+// AUTH MODELS
+// =====================================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String?
+  name          String?
+  username      String?  @unique
+  image         String?
+  bio           String?  @db.Text
+  role          Role     @default(USER)
+  isCreator     Boolean  @default(false)
+  isVerified    Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  creator       Creator?
+  
+  // Content
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  
+  // Social
+  subscriptions Subscription[] @relation("UserSubscriptions")
+  followers     Follow[]       @relation("Follower")
+  following     Follow[]       @relation("Following")
+  
+  // Wallet & Payments
+  wallet        Wallet?
+  transactions  Transaction[]
+  
+  // Notifications
+  notifications Notification[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String? @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// =====================================================
+// CREATOR MODELS
+// =====================================================
+
+model Creator {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  displayName     String
+  username        String   @unique
+  bio             String?  @db.Text
+  avatar          String?
+  banner          String?
+  subscriptionFee Int      @default(0)
+  monthlyRevenue  Int      @default(0)
+  isVerified      Boolean  @default(false)
+  category        String?  // e.g., 'music', 'art', 'fitness'
+  website         String?
+
+  // Stripe
+  stripePriceId            String?
+  stripeProductId          String?
+  stripeAccountId          String?  // Stripe Connect account ID
+  stripeOnboardingComplete Boolean  @default(false)
+  availableBalance         Int      @default(0) // creator earnings in cents, ready to withdraw
+  pendingBalance           Int      @default(0) // creator earnings in cents, waiting to clear
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts           Post[]
+  subscribers     Subscription[]
+}
+
+// =====================================================
+// CONTENT MODELS
+// =====================================================
+
+model Post {
+  id            String   @id @default(cuid())
+  creatorId     String
+  creator       Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  caption       String?  @db.Text
+  content       String?  @db.Text
+  mediaUrls     Json     
+  mediaType     String   @default("image") // 'image' | 'video' | 'mixed'
+  
+  visibility    Visibility @default(PUBLIC) // PUBLIC | SUBSCRIBERS_ONLY | PRIVATE
+  isLocked      Boolean  @default(false)
+  isPinned      Boolean  @default(false)
+  
+  likeCount     Int      @default(0)
+  commentCount  Int      @default(0)
+  shareCount    Int      @default(0)
+  viewCount     Int      @default(0)
+  
+  tags          Json     
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  comments      Comment[]
+  likes         Like[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  content   String   @db.Text
+  likeCount Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  likes     Like[]
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId     String?
+  post       Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  commentId  String?
+  comment    Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, postId, commentId])
+}
+
+// =====================================================
+// SOCIAL MODELS
+// =====================================================
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  
+  followingId String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+model Subscription {
+  id           String   @id @default(cuid())
+  subscriberId String
+  subscriber   User     @relation("UserSubscriptions", fields: [subscriberId], references: [id], onDelete: Cascade)
+  
+  creatorId    String
+  creator      Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  startDate    DateTime @default(now())
+  endDate      DateTime?
+  isActive     Boolean  @default(true)
+
+  // Stripe
+  stripeSubscriptionId String? @unique
+  stripeCustomerId     String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([subscriberId, creatorId])
+}
+
+// =====================================================
+// WALLET & PAYMENT MODELS
+// =====================================================
+
+model Wallet {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  balance       Int      @default(0) // in cents
+  totalEarned   Int      @default(0)
+  totalSpent    Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Transaction {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          TransactionType
+  amount        Int           // in cents
+  description   String?
+  status        TransactionStatus @default(PENDING)
+  
+  relatedUserId String?       // For transfers/payments
+  stripeId      String?       // Stripe payment intent, invoice, transfer ID
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// =====================================================
+// NOTIFICATION MODELS
+// =====================================================
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        NotificationType
+  title       String
+  message     String   @db.Text
+  
+  relatedId   String?  // ID of related entity (post, user, etc)
+  relatedType String?  // Type of related entity
+  
+  isRead      Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isRead])
+}
+
+// =====================================================
+// ENUMS
+// =====================================================
+
+enum Role {
+  USER
+  CREATOR
+  ADMIN
+}
+
+enum Visibility {
+  PUBLIC
+  SUBSCRIBERS_ONLY
+  PRIVATE
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  SUBSCRIPTION
+  // MESSAGE removed
+  MENTION
+}
+
+enum TransactionType {
+  SUBSCRIPTION_PAYMENT
+  WITHDRAWAL
+  DEPOSIT
+  REFUND
+  TRANSFER
+  CREATOR_EARNING
+  PLATFORM_FEE
+  PAYOUT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}

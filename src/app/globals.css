@@ -1,0 +1,275 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* LIGHT MODE (Default) */
+    /* Background & Foreground */
+    --background: 0 0% 100%;             /* white background */
+    --foreground: 0 0% 3%;               /* almost black text */
+
+    /* Cards */
+    --card: 0 0% 98%;                    /* light gray cards */
+    --card-foreground: 0 0% 3%;          /* dark text on cards */
+
+    /* Popovers / Modals */
+    --popover: 0 0% 100%;                /* white popovers */
+    --popover-foreground: 0 0% 3%;       /* dark text */
+
+    /* Primary Actions / Buttons */
+    --primary: 195 88% 70%;              /* main brand color (cyan) */
+    --primary-foreground: 0 0% 100%;     /* white text on primary */
+
+    /* Secondary Actions / Buttons */
+    --secondary: 195 10% 90%;            /* light cyan for secondary buttons */
+    --secondary-foreground: 195 10% 30%; /* dark text on secondary */
+
+    /* Muted / Disabled Elements */
+    --muted: 0 0% 90%;                   /* light muted surfaces */
+    --muted-foreground: 0 0% 50%;        /* medium gray text */
+
+    /* Accent / Highlights */
+    --accent: 195 80% 65%;               /* accent color (bright cyan) */
+    --accent-foreground: 0 0% 100%;      /* white text on accent */
+
+    /* Destructive / Danger */
+    --destructive: 0 84% 60%;            /* red for destructive */
+    --destructive-foreground: 0 0% 100%; /* white text on destructive */
+
+    /* Borders, Inputs, Rings */
+    --border: 0 0% 90%;                  /* light border */
+    --input: 0 0% 95%;                   /* light input backgrounds */
+    --ring: 195 88% 70%;                 /* focus ring matches primary */
+
+    /* Radius */
+    --radius: 0.75rem;                   /* unchanged */
+
+    /* Sidebar */
+    --sidebar-background: 195 30% 95%;       /* light cyan sidebar */
+    --sidebar-foreground: 0 0% 30%;          /* dark text in sidebar */
+    --sidebar-primary: 195 88% 70%;          /* primary action in sidebar */
+    --sidebar-primary-foreground: 0 0% 100%; /* white text on primary sidebar button */
+    --sidebar-accent: 195 20% 85%;           /* light accent sidebar elements */
+    --sidebar-accent-foreground: 0 0% 20%;   /* dark text on accent sidebar */
+    --sidebar-border: 0 0% 85%;              /* light borders */
+    --sidebar-ring: 195 88% 70%;             /* focus ring for sidebar */
+
+    /* Custom Celebque tokens */
+    --celebque-gradient-start: 195 88% 70%;  /* main bright color */
+    --celebque-gradient-end: 195 80% 60%;    /* slightly darker for gradient end */
+    --celebque-glow: 195 88% 75%;            /* lighter for glow effect */
+    --celebque-surface: 195 20% 90%;         /* light cyan surface */
+    --celebque-surface-elevated: 195 20% 85%;/* slightly darker for elevated surfaces */
+    --celebque-text-muted: 195 10% 50%;      /* muted text */
+  }
+
+  .dark {
+    /* DARK MODE */
+    /* Background & Foreground */
+    --background: 195 10% 4%;            /* dark cyan background */
+    --foreground: 0 0% 98%;              /* almost white text */
+
+    /* Cards */
+    --card: 195 10% 6%;                  /* slightly lighter than background */
+    --card-foreground: 0 0% 98%;         /* light text on cards */
+
+    /* Popovers / Modals */
+    --popover: 195 10% 8%;               /* elevated background */
+    --popover-foreground: 0 0% 98%;      /* light text */
+
+    /* Primary Actions / Buttons */
+    --primary: 195 88% 70%;              /* main brand color */
+    --primary-foreground: 0 0% 100%;     /* text on primary */
+
+    /* Secondary Actions / Buttons */
+    --secondary: 195 10% 12%;            /* darker cyan for secondary buttons */
+    --secondary-foreground: 0 0% 98%;    /* light text color */
+
+    /* Muted / Disabled Elements */
+    --muted: 195 10% 15%;                /* dark muted surfaces */
+    --muted-foreground: 195 20% 55%;     /* muted text with cyan tint */
+
+    /* Accent / Highlights */
+    --accent: 195 80% 65%;               /* accent color (lighter cyan) */
+    --accent-foreground: 0 0% 100%;      /* text on accent */
+
+    /* Destructive / Danger */
+    --destructive: 0 72% 51%;            /* red for destructive */
+    --destructive-foreground: 0 0% 100%; /* white text on destructive */
+
+    /* Borders, Inputs, Rings */
+    --border: 195 10% 18%;               /* subtle border */
+    --input: 195 10% 18%;                /* input backgrounds */
+    --ring: 195 88% 70%;                 /* focus ring matches primary */
+
+    /* Sidebar */
+    --sidebar-background: 195 10% 5%;         /* dark sidebar */
+    --sidebar-foreground: 0 0% 85%;           /* light text in sidebar */
+    --sidebar-primary: 195 88% 70%;           /* primary action in sidebar */
+    --sidebar-primary-foreground: 0 0% 100%;  /* white text on primary sidebar button */
+    --sidebar-accent: 195 10% 12%;            /* accent sidebar elements */
+    --sidebar-accent-foreground: 0 0% 98%;    /* light text on accent sidebar */
+    --sidebar-border: 195 10% 15%;            /* sidebar borders */
+    --sidebar-ring: 195 88% 70%;              /* focus ring for sidebar */
+
+    /* Custom Celebque tokens */
+    --celebque-gradient-start: 195 88% 70%;   /* main bright color */
+    --celebque-gradient-end: 195 80% 60%;     /* slightly darker for gradient end */
+    --celebque-glow: 195 88% 75%;             /* lighter for glow effect */
+    --celebque-surface: 195 10% 8%;           /* very dark cyan for background */
+    --celebque-surface-elevated: 195 10% 12%; /* slightly lighter for elevated surfaces */
+    --celebque-text-muted: 195 20% 50%;       /* muted text */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--celebque-gradient-start)), hsl(var(--celebque-gradient-end)));
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--celebque-gradient-start)), hsl(var(--celebque-gradient-end)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 40px hsl(var(--celebque-glow) / 0.3);
+  }
+
+  .glass {
+    background: hsl(var(--celebque-surface) / 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .glass-elevated {
+    background: hsl(var(--celebque-surface-elevated) / 0.9);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .snap-y-mandatory {
+    scroll-snap-type: y mandatory;
+  }
+
+  .snap-center {
+    scroll-snap-align: center;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.5s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out forwards;
+  }
+
+  .animate-glow-pulse {
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--celebque-glow) / 0.2);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--celebque-glow) / 0.4);
+  }
+}
