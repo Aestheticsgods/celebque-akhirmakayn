@@ -13,8 +13,8 @@ A modern content creation platform built with Next.js, where creators can share 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Anir4/Celeb.git
-cd Celeb
+git clone https://github.com/Aestheticsgods/celebque-akhirmakayn.git
+cd celebque-akhirmakayn
 ```
 
 ### 2. Install Dependencies
@@ -181,7 +181,7 @@ Use Hostinger VPS (not shared hosting) for this app.
 ### Deploy steps
 
 ```bash
-git clone <your-repo-url> /var/www/celebque
+git clone https://github.com/Aestheticsgods/celebque-akhirmakayn.git /var/www/celebque
 cd /var/www/celebque
 npm ci
 cp .env.example .env
