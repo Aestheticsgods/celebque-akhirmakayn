@@ -95,37 +95,33 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Project Structure
 
-```
-src/
-├── app/                      # Next.js App Router pages
-│   ├── (auth)/              # Authentication pages (login, signup)
-│   ├── (main)/              # Main app routes (protected)
-│   └── api/                 # API routes
-├── components/               # React components
-│   ├── layout/              # Layout components (sidebar, navbar)
-│   ├── feed/                # Feed components
-│   └── ui/                  # UI components (buttons, inputs, etc.)
-├── contexts/                # React contexts (Auth, Sidebar)
-├── lib/                     # Utility functions
-├── types/                   # TypeScript type definitions
-└── middleware.ts            # NextAuth middleware for route protection
-prisma/
-├── schema.prisma            # Database schema
-└── migrations/              # Database migration history
-```
+- src/app: Next.js App Router pages
+- src/app/(auth): Authentication pages (login, signup)
+- src/app/(main): Main protected app routes
+- src/app/api: API routes
+- src/components: React components
+- src/components/layout: Layout components
+- src/components/feed: Feed components
+- src/components/ui: Reusable UI components
+- src/contexts: React contexts
+- src/lib: Utility modules
+- src/types: TypeScript types
+- src/middleware.ts: Route protection middleware
+- prisma/schema.prisma: Database schema
+- prisma/migrations: Prisma migration history
 
 ## Features
 
-- ✅ User Authentication (Email/Password & Google OAuth)
-- ✅ Creator Dashboard
-- ✅ Content Discovery Feed
-- ✅ Subscriptions & Payments
-- ✅ Creator Profiles
-- ✅ Messages & Notifications
-- ✅ Session Management with NextAuth
-- ✅ Route Protection & Authorization
-- ✅ Responsive Design
-- ✅ Dark Mode Support
+- User authentication (email/password and Google OAuth)
+- Creator dashboard
+- Content discovery feed
+- Subscriptions and payments
+- Creator profiles
+- Messages and notifications
+- Session management with NextAuth
+- Route protection and authorization
+- Responsive design
+- Dark mode support
 
 ## Authentication
 
@@ -155,7 +151,7 @@ npx prisma studio
 # Generate Prisma Client (usually automatic)
 npx prisma generate
 
-# Reset database (⚠️ destructive)
+# Reset database (destructive)
 npx prisma migrate reset
 
 # Format Prisma schema
@@ -172,7 +168,102 @@ npm start
 
 ## Hostinger VPS Deployment
 
-See full production instructions in [DEPLOY_HOSTINGER.md](DEPLOY_HOSTINGER.md).
+Use Hostinger VPS (not shared hosting) for this app.
+
+### Server prerequisites
+
+- Ubuntu 22.04+
+- Node.js 20+
+- MySQL 8+
+- Nginx
+- PM2
+
+### Deploy steps
+
+```bash
+git clone <your-repo-url> /var/www/celebque
+cd /var/www/celebque
+npm ci
+cp .env.example .env
+nano .env
+npm run db:migrate
+npm run build
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 startup
+```
+
+### Required production environment variables
+
+- DATABASE_URL
+- NEXTAUTH_URL
+- NEXTAUTH_SECRET
+- NEXT_PUBLIC_APP_URL
+- STRIPE_SECRET_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_MOCK_MODE=false
+
+If Google login is not used, keep `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` empty.
+
+### Nginx reverse proxy
+
+```nginx
+server {
+  listen 80;
+  server_name your-domain.com www.your-domain.com;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+```
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### SSL certificate
+
+```bash
+sudo apt update
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com -d www.your-domain.com
+```
+
+### Stripe webhook setup
+
+Create a Stripe webhook endpoint:
+
+- URL: `https://your-domain.com/api/stripe/webhook`
+
+Subscribe to at least:
+
+- checkout.session.completed
+- invoice.payment_succeeded
+- customer.subscription.deleted
+- account.updated
+
+Copy the webhook secret into `STRIPE_WEBHOOK_SECRET`.
+
+### Redeploy updates
+
+```bash
+cd /var/www/celebque
+git pull
+npm ci
+npm run db:migrate
+npm run build
+pm2 restart celebque
+```
 
 ## Learn More
 
