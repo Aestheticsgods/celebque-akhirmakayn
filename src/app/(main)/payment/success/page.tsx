@@ -1,12 +1,13 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { CheckCircle, Home, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function PaymentSuccess() {
+function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
 
@@ -54,5 +55,13 @@ export default function PaymentSuccess() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function PaymentSuccess() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }
