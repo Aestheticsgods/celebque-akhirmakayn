@@ -5,9 +5,6 @@ import { stripe, calculateFees } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { getPaymentLinkTarget } from '@/lib/stripePaymentLinks';
 
-// Stripe requires the raw body for signature verification.
-export const config = { api: { bodyParser: false } };
-
 function getSessionEmail(session: Stripe.Checkout.Session) {
   return session.customer_details?.email || session.customer_email || null;
 }
