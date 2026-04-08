@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { dollarsToCents, centsToDollars } from '@/lib/pricing';
+import { GLOBAL_SUBSCRIPTION_FEE_CENTS, centsToDollars } from '@/lib/pricing';
 
 export async function POST(request: Request) {
   try {
@@ -13,20 +13,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { displayName, bio, subscriptionPrice } = await request.json();
+    const { displayName, bio } = await request.json();
 
-    if (!displayName || subscriptionPrice === undefined) {
+    if (!displayName) {
       return Response.json(
         { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const subscriptionFeeCents = dollarsToCents(Number(subscriptionPrice));
-
-    if (!Number.isFinite(subscriptionFeeCents) || subscriptionFeeCents < 100) {
-      return Response.json(
-        { error: 'Subscription price must be at least $1.00' },
         { status: 400 }
       );
     }
@@ -59,7 +50,7 @@ export async function POST(request: Request) {
         displayName,
         username: displayName.toLowerCase().replace(/\s+/g, '_'),
         bio: bio || '',
-        subscriptionFee: subscriptionFeeCents,
+        subscriptionFee: GLOBAL_SUBSCRIPTION_FEE_CENTS,
         avatar: user.image || undefined,
       },
     });

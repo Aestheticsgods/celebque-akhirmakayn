@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { centsToDollars, dollarsToCents } from '@/lib/pricing';
+import { GLOBAL_SUBSCRIPTION_FEE_CENTS, centsToDollars } from '@/lib/pricing';
 
 // GET all creators with pagination
 export async function GET(req: NextRequest) {
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { displayName, username, bio, subscriptionFee, category, website } = body;
+    const { displayName, username, bio, category, website } = body;
 
     if (!displayName || !username) {
       return NextResponse.json(
@@ -140,17 +140,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const subscriptionFeeCents = subscriptionFee !== undefined
-      ? dollarsToCents(Number(subscriptionFee))
-      : 0;
-
     const creator = await prisma.creator.create({
       data: {
         userId: user.id,
         displayName,
         username,
         bio: bio || null,
-        subscriptionFee: subscriptionFeeCents,
+        subscriptionFee: GLOBAL_SUBSCRIPTION_FEE_CENTS,
         category: category || null,
         website: website || null,
       },

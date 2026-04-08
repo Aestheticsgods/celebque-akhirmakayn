@@ -12,7 +12,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   signup: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  upgradeToCreator: (displayName: string, bio: string, price: number) => Promise<boolean>;
+  upgradeToCreator: (displayName: string, bio: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,8 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const upgradeToCreator = async (
     displayName: string, 
-    bio: string, 
-    price: number
+    bio: string
   ): Promise<boolean> => {
     try {
       const response = await fetch('/api/creator/upgrade', {
@@ -96,7 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           displayName,
           bio,
-          subscriptionPrice: price,
         }),
       });
 

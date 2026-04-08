@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { centsToDollars, dollarsToCents } from '@/lib/pricing';
+import { centsToDollars } from '@/lib/pricing';
 
 // GET single creator by ID
 export async function GET(
@@ -92,11 +92,7 @@ export async function PUT(
       );
     }
 
-    const { displayName, bio, avatar, banner, subscriptionFee, category, website } = body;
-
-    const subscriptionFeeCents = subscriptionFee !== undefined
-      ? dollarsToCents(Number(subscriptionFee))
-      : undefined;
+    const { displayName, bio, avatar, banner, category, website } = body;
 
     const updatedCreator = await prisma.creator.update({
       where: { id },
@@ -105,7 +101,6 @@ export async function PUT(
         ...(bio !== undefined && { bio }),
         ...(avatar && { avatar }),
         ...(banner && { banner }),
-        ...(subscriptionFeeCents !== undefined && { subscriptionFee: subscriptionFeeCents }),
         ...(category && { category }),
         ...(website && { website }),
       },

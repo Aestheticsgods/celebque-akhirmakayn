@@ -7,12 +7,12 @@ import { Star, DollarSign, Users, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { GLOBAL_SUBSCRIPTION_FEE_USD } from '@/lib/pricing';
 import { toast } from 'sonner';
 
 export default function BecomeCreator() {
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
-  const [price, setPrice] = useState('9.99');
   const [isLoading, setIsLoading] = useState(false);
   const { upgradeToCreator, user } = useAuth();
   const router = useRouter();
@@ -34,7 +34,7 @@ export default function BecomeCreator() {
     setIsLoading(true);
 
     try {
-      const success = await upgradeToCreator(displayName, bio, parseFloat(price));
+      const success = await upgradeToCreator(displayName, bio);
       if (success) {
         toast.success('Congratulations! You are now a creator!');
         router.push('/creator/dashboard');
@@ -135,27 +135,9 @@ export default function BecomeCreator() {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Monthly subscription price ($)
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input
-                  type="number"
-                  min="1"
-                  max="100"
-                  step="0.01"
-                  placeholder="9.99"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                You can change this price anytime
-              </p>
+            <div className="rounded-xl border border-border/60 bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
+              Monthly subscription price is fixed platform-wide at
+              <span className="font-semibold text-foreground"> ${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}</span>.
             </div>
 
             <div className="pt-4">

@@ -73,11 +73,11 @@ export const creatorsAPI = {
     return res.json();
   },
 
-  upgrade: async (displayName: string, bio: string, subscriptionPrice: number) => {
+  upgrade: async (displayName: string, bio: string) => {
     const res = await fetch(`${API_BASE}/creator/upgrade`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName, bio, subscriptionPrice }),
+      body: JSON.stringify({ displayName, bio }),
     });
     if (!res.ok) throw new Error('Failed to upgrade to creator');
     return res.json();
