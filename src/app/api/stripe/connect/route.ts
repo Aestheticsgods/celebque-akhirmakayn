@@ -3,6 +3,21 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { hasStripeSecretKey, stripe } from '@/lib/stripe';
 
+function getSafeErrorMessage(error: unknown) {
+  if (error && typeof error === 'object' && 'type' in error) {
+    const stripeError = error as { type?: string; code?: string; message?: string };
+    if (stripeError.message) {
+      return `${stripeError.type || 'stripe_error'}${stripeError.code ? ` (${stripeError.code})` : ''}: ${stripeError.message}`;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return 'Unexpected Stripe Connect error';
+}
+
 const STRIPE_MOCK_MODE =
   process.env.STRIPE_MOCK_MODE === 'true' ||
   process.env.STRIPE_SECRET_KEY?.includes('REPLACE_ME');
@@ -103,7 +118,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: accountLink.url });
   } catch (error) {
     console.error('[stripe/connect] Error:', error);
-    return NextResponse.json({ error: 'Failed to create Connect account link' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to create Connect account link',
+        details: getSafeErrorMessage(error),
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -167,6 +188,12 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('[stripe/connect GET] Error:', error);
-    return NextResponse.json({ error: 'Failed to check Connect status' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to check Connect status',
+        details: getSafeErrorMessage(error),
+      },
+      { status: 500 }
+    );
   }
 }

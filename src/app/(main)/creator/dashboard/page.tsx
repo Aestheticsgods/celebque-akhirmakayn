@@ -127,7 +127,10 @@ export default function CreatorDashboard() {
     try {
       const res = await fetch('/api/stripe/connect', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Failed to connect Stripe'); return; }
+      if (!res.ok) {
+        toast.error(data.details || data.error || 'Failed to connect Stripe');
+        return;
+      }
       window.location.href = data.url;
     } catch {
       toast.error('Something went wrong');
