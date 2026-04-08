@@ -181,7 +181,7 @@ export default function Discover() {
                       {(creator as any).subscriberCount?.toLocaleString() || '0'} subscribers
                     </span>
                     <Button size="sm" variant="gradient">
-                      €{creator.subscriptionFee.toFixed(2)}/month
+                      ${creator.subscriptionFee.toFixed(2)}/month
                     </Button>
                   </div>
                 </div>

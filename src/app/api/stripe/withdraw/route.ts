@@ -7,7 +7,7 @@ const STRIPE_MOCK_MODE =
   process.env.STRIPE_MOCK_MODE === 'true' ||
   process.env.STRIPE_SECRET_KEY?.includes('REPLACE_ME');
 
-// Minimum withdrawal: €10 = 1000 cents
+// Minimum withdrawal: $10 = 1000 cents
 const MIN_WITHDRAWAL_CENTS = 1000;
 
 export async function POST(req: NextRequest) {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     if (!amountCents || typeof amountCents !== 'number' || amountCents < MIN_WITHDRAWAL_CENTS) {
       return NextResponse.json(
-        { error: `Minimum withdrawal is €${MIN_WITHDRAWAL_CENTS / 100}` },
+        { error: `Minimum withdrawal is $${MIN_WITHDRAWAL_CENTS / 100}` },
         { status: 400 }
       );
     }
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     // Create a Stripe Transfer from your platform account to the creator's connected account
     const transfer = await stripe.transfers.create({
       amount: amountCents,
-      currency: 'eur',
+      currency: 'usd',
       destination: creator.stripeAccountId,
       description: `Payout for creator ${creator.displayName}`,
       metadata: { creatorId: creator.id },

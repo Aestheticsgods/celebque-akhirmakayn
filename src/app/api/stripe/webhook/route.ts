@@ -1,14 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import type { Prisma } from '@prisma/client';
 import { stripe, calculateFees } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
+import { getPaymentLinkTarget } from '@/lib/stripePaymentLinks';
 
 // Stripe requires the raw body for signature verification.
 export const config = { api: { bodyParser: false } };
 
+function getSessionEmail(session: Stripe.Checkout.Session) {
+  return session.customer_details?.email || session.customer_email || null;
+}
+
+function getSessionPaymentLinkId(session: Stripe.Checkout.Session) {
+  const paymentLink = session.payment_link;
+  if (!paymentLink) return null;
+  return typeof paymentLink === 'string' ? paymentLink : paymentLink.id;
+}
+
+async function resolvePaymentLinkKind(session: Stripe.Checkout.Session) {
+  const paymentLinkId = getSessionPaymentLinkId(session);
+  if (!paymentLinkId) return null;
+
+  const [subscriptionLink, tipLink] = await Promise.all([
+    getPaymentLinkTarget('subscription'),
+    getPaymentLinkTarget('tip'),
+  ]);
+
+  if (paymentLinkId === subscriptionLink.paymentLinkId) return 'subscription';
+  if (paymentLinkId === tipLink.paymentLinkId) return 'tip';
+
+  return null;
+}
+
+async function findPendingPaymentLinkTransaction(
+  session: Stripe.Checkout.Session,
+  type: 'SUBSCRIPTION_PAYMENT' | 'DEPOSIT'
+) {
+  const email = getSessionEmail(session);
+  const paymentLinkId = getSessionPaymentLinkId(session);
+
+  if (!email || !paymentLinkId) return null;
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return null;
+
+  const pendingTransaction = await prisma.transaction.findFirst({
+    where: {
+      userId: user.id,
+      type,
+      status: 'PENDING',
+      stripeId: paymentLinkId,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!pendingTransaction?.relatedUserId) return null;
+
+  const creator = await prisma.creator.findUnique({
+    where: { userId: pendingTransaction.relatedUserId },
+  });
+
+  if (!creator) return null;
+
+  return { creator, pendingTransaction, user };
+}
+
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const { creatorId, subscriberId } = session.metadata ?? {};
-  if (!creatorId || !subscriberId) return;
+
+  if (creatorId && subscriberId) {
+    const stripeSubscriptionId =
+      typeof session.subscription === 'string'
+        ? session.subscription
+        : (session.subscription as Stripe.Subscription)?.id;
+
+    if (!stripeSubscriptionId) return;
+
+    await prisma.subscription.upsert({
+      where: { subscriberId_creatorId: { subscriberId, creatorId } },
+      create: {
+        subscriberId,
+        creatorId,
+        isActive: true,
+        stripeSubscriptionId,
+        stripeCustomerId: typeof session.customer === 'string' ? session.customer : undefined,
+      },
+      update: {
+        isActive: true,
+        endDate: null,
+        stripeSubscriptionId,
+        stripeCustomerId: typeof session.customer === 'string' ? session.customer : undefined,
+      },
+    });
+
+    return;
+  }
+
+  const paymentLinkKind = await resolvePaymentLinkKind(session);
+  if (paymentLinkKind !== 'subscription') return;
+
+  const match = await findPendingPaymentLinkTransaction(session, 'SUBSCRIPTION_PAYMENT');
+  if (!match) return;
 
   const stripeSubscriptionId =
     typeof session.subscription === 'string'
@@ -17,23 +110,100 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!stripeSubscriptionId) return;
 
-  // Create or re-activate the subscription record
-  await prisma.subscription.upsert({
-    where: { subscriberId_creatorId: { subscriberId, creatorId } },
-    create: {
-      subscriberId,
-      creatorId,
-      isActive: true,
-      stripeSubscriptionId,
-      stripeCustomerId: typeof session.customer === 'string' ? session.customer : undefined,
-    },
-    update: {
-      isActive: true,
-      endDate: null,
-      stripeSubscriptionId,
-      stripeCustomerId: typeof session.customer === 'string' ? session.customer : undefined,
+  await prisma.$transaction([
+    prisma.subscription.upsert({
+      where: {
+        subscriberId_creatorId: {
+          subscriberId: match.user.id,
+          creatorId: match.creator.id,
+        },
+      },
+      create: {
+        subscriberId: match.user.id,
+        creatorId: match.creator.id,
+        isActive: true,
+        stripeSubscriptionId,
+        stripeCustomerId: typeof session.customer === 'string' ? session.customer : undefined,
+      },
+      update: {
+        isActive: true,
+        endDate: null,
+        stripeSubscriptionId,
+        stripeCustomerId: typeof session.customer === 'string' ? session.customer : undefined,
+      },
+    }),
+    prisma.transaction.update({
+      where: { id: match.pendingTransaction.id },
+      data: {
+        stripeId: stripeSubscriptionId,
+        description: `Pending subscription payment for creator ${match.creator.id}`,
+      },
+    }),
+  ]);
+}
+
+async function handleTipCheckoutCompleted(session: Stripe.Checkout.Session) {
+  if (session.payment_status !== 'paid') return;
+
+  const match = await findPendingPaymentLinkTransaction(session, 'DEPOSIT');
+  if (!match) return;
+
+  const amountPaidCents = session.amount_total ?? 0;
+  if (amountPaidCents <= 0) return;
+
+  const stripePaymentId =
+    typeof session.payment_intent === 'string' ? session.payment_intent : session.id;
+
+  const existingTip = await prisma.transaction.findFirst({
+    where: {
+      stripeId: stripePaymentId,
+      type: 'CREATOR_EARNING',
     },
   });
+
+  if (existingTip) return;
+
+  const { platformFee, creatorEarning } = calculateFees(amountPaidCents);
+
+  await prisma.$transaction([
+    prisma.creator.update({
+      where: { id: match.creator.id },
+      data: {
+        availableBalance: { increment: creatorEarning },
+        monthlyRevenue: { increment: Math.round(creatorEarning / 100) },
+      },
+    }),
+    prisma.transaction.update({
+      where: { id: match.pendingTransaction.id },
+      data: {
+        status: 'COMPLETED',
+        amount: amountPaidCents,
+        description: `Tip to ${match.creator.displayName}`,
+        stripeId: stripePaymentId,
+      },
+    }),
+    prisma.transaction.create({
+      data: {
+        userId: match.creator.userId,
+        type: 'CREATOR_EARNING',
+        amount: creatorEarning,
+        description: 'Tip from supporter',
+        status: 'COMPLETED',
+        relatedUserId: match.user.id,
+        stripeId: stripePaymentId,
+      },
+    }),
+    prisma.transaction.create({
+      data: {
+        userId: match.creator.userId,
+        type: 'PLATFORM_FEE',
+        amount: platformFee,
+        description: 'Platform fee (15%) on tip',
+        status: 'COMPLETED',
+        stripeId: stripePaymentId,
+      },
+    }),
+  ]);
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
@@ -51,57 +221,86 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
 
   if (!subscription) return;
 
+  const existingInvoiceCredit = await prisma.transaction.findFirst({
+    where: {
+      stripeId: invoice.id,
+      type: 'CREATOR_EARNING',
+    },
+  });
+
+  if (existingInvoiceCredit) return;
+
   const amountPaidCents = invoice.amount_paid;
   if (amountPaidCents <= 0) return;
 
   const { platformFee, creatorEarning } = calculateFees(amountPaidCents);
 
-  // Credit creator earnings
-  await prisma.$transaction([
-    // Update creator balance
-    prisma.creator.update({
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const pendingSubscriberPayment = await tx.transaction.findFirst({
+      where: {
+        userId: subscription.subscriberId,
+        relatedUserId: subscription.creator.userId,
+        type: 'SUBSCRIPTION_PAYMENT',
+        status: 'PENDING',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    await tx.creator.update({
       where: { id: subscription.creatorId },
       data: {
         availableBalance: { increment: creatorEarning },
         monthlyRevenue: { increment: Math.round(creatorEarning / 100) },
       },
-    }),
-    // Log creator earning transaction
-    prisma.transaction.create({
+    });
+
+    await tx.transaction.create({
       data: {
         userId: subscription.creator.userId,
         type: 'CREATOR_EARNING',
         amount: creatorEarning,
-        description: `Subscription payment from subscriber`,
+        description: 'Subscription payment from subscriber',
         status: 'COMPLETED',
         relatedUserId: subscription.subscriberId,
         stripeId: invoice.id,
       },
-    }),
-    // Log platform fee transaction
-    prisma.transaction.create({
+    });
+
+    await tx.transaction.create({
       data: {
         userId: subscription.creator.userId,
         type: 'PLATFORM_FEE',
         amount: platformFee,
-        description: 'Platform fee (20%)',
+        description: 'Platform fee (15%)',
         status: 'COMPLETED',
         stripeId: invoice.id,
       },
-    }),
-    // Log subscriber payment transaction
-    prisma.transaction.create({
-      data: {
-        userId: subscription.subscriberId,
-        type: 'SUBSCRIPTION_PAYMENT',
-        amount: amountPaidCents,
-        description: `Subscription to ${subscription.creator.displayName}`,
-        status: 'COMPLETED',
-        relatedUserId: subscription.creator.userId,
-        stripeId: invoice.id,
-      },
-    }),
-  ]);
+    });
+
+    if (pendingSubscriberPayment) {
+      await tx.transaction.update({
+        where: { id: pendingSubscriberPayment.id },
+        data: {
+          status: 'COMPLETED',
+          amount: amountPaidCents,
+          description: `Subscription to ${subscription.creator.displayName}`,
+          stripeId: invoice.id,
+        },
+      });
+    } else {
+      await tx.transaction.create({
+        data: {
+          userId: subscription.subscriberId,
+          type: 'SUBSCRIPTION_PAYMENT',
+          amount: amountPaidCents,
+          description: `Subscription to ${subscription.creator.displayName}`,
+          status: 'COMPLETED',
+          relatedUserId: subscription.creator.userId,
+          stripeId: invoice.id,
+        },
+      });
+    }
+  });
 }
 
 async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
@@ -149,6 +348,7 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        await handleTipCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
         break;
 
       case 'invoice.paid':

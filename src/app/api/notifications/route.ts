@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    const unreadByType = unreadByTypeRows.reduce((acc, row) => {
+    const unreadByType = unreadByTypeRows.reduce((acc: Record<string, number>, row: (typeof unreadByTypeRows)[number]) => {
       acc[row.type] = row._count._all;
       return acc;
     }, {} as Record<string, number>);

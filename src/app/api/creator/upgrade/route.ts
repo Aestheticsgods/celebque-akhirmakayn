@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { eurosToCents, centsToEuros } from '@/lib/pricing';
+import { dollarsToCents, centsToDollars } from '@/lib/pricing';
 
 export async function POST(request: Request) {
   try {
@@ -22,11 +22,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const subscriptionFeeCents = eurosToCents(Number(subscriptionPrice));
+    const subscriptionFeeCents = dollarsToCents(Number(subscriptionPrice));
 
     if (!Number.isFinite(subscriptionFeeCents) || subscriptionFeeCents < 100) {
       return Response.json(
-        { error: 'Subscription price must be at least €1.00' },
+        { error: 'Subscription price must be at least $1.00' },
         { status: 400 }
       );
     }
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       user: updatedUser,
       creator: {
         ...creator,
-        subscriptionFee: centsToEuros(creator.subscriptionFee),
+        subscriptionFee: centsToDollars(creator.subscriptionFee),
       },
     });
   } catch (error) {

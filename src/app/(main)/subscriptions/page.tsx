@@ -95,7 +95,7 @@ export default function Subscriptions() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-foreground">
-                      €{subscription.creator?.subscriptionFee?.toFixed(2)}/month
+                      ${subscription.creator?.subscriptionFee?.toFixed(2)}/month
                     </span>
                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
                       Cancel

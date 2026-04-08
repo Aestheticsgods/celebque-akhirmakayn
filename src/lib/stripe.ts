@@ -9,8 +9,8 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   typescript: true,
 });
 
-// 20% platform fee — creator keeps 80%
-export const PLATFORM_FEE_PERCENT = 20;
+// 15% platform fee — creator keeps 85%
+export const PLATFORM_FEE_PERCENT = 15;
 
 /**
  * Given a gross amount in cents, returns the split between

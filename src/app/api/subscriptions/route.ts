@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { centsToEuros } from '@/lib/pricing';
+import { centsToDollars } from '@/lib/pricing';
 
 
 // GET - Get subscriptions for current user
@@ -37,12 +37,12 @@ export async function GET(req: NextRequest) {
     // Return a plain array so client components that expect an array
     // (profile, subscriptions, promotions pages) can consume it directly.
     return NextResponse.json(
-      subscriptions.map((subscription) => ({
+      subscriptions.map((subscription: (typeof subscriptions)[number]) => ({
         ...subscription,
         creator: subscription.creator
           ? {
               ...subscription.creator,
-              subscriptionFee: centsToEuros(subscription.creator.subscriptionFee),
+              subscriptionFee: centsToDollars(subscription.creator.subscriptionFee),
             }
           : subscription.creator,
       })),
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
         creator: subscription.creator
           ? {
               ...subscription.creator,
-              subscriptionFee: centsToEuros(subscription.creator.subscriptionFee),
+              subscriptionFee: centsToDollars(subscription.creator.subscriptionFee),
             }
           : subscription.creator,
       },

@@ -19,7 +19,9 @@ import {
   CreditCard,
   ExternalLink,
   Wallet,
-  ArrowDownToLine
+  ArrowDownToLine,
+  HandCoins,
+  Clock3
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -35,10 +37,34 @@ import {
 import { postsAPI, creatorsAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
+interface RecentTip {
+  id: string;
+  amount: number;
+  createdAt: string;
+  supporter: {
+    id: string;
+    name?: string | null;
+    username?: string | null;
+    image?: string | null;
+  } | null;
+}
+
+interface CreatorProfile {
+  id: string;
+  displayName: string;
+  subscriberCount: number;
+  monthlyRevenue: number;
+  postCount: number;
+  availableBalance: number;
+  pendingBalance: number;
+  stripeOnboardingComplete: boolean;
+  recentTips?: RecentTip[];
+}
+
 export default function CreatorDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [creator, setCreator] = useState<any>(null);
+  const [creator, setCreator] = useState<CreatorProfile | null>(null);
   const [creatorPosts, setCreatorPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,9 +137,9 @@ export default function CreatorDashboard() {
   };
 
   const handleWithdraw = async () => {
-    const amountEuros = parseFloat(withdrawAmount);
-    if (!withdrawAmount || isNaN(amountEuros) || amountEuros < 10) {
-      toast.error('Minimum withdrawal is €10');
+    const amountUsd = parseFloat(withdrawAmount);
+    if (!withdrawAmount || isNaN(amountUsd) || amountUsd < 10) {
+      toast.error('Minimum withdrawal is $10');
       return;
     }
     setIsWithdrawing(true);
@@ -121,11 +147,11 @@ export default function CreatorDashboard() {
       const res = await fetch('/api/stripe/withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amountCents: Math.round(amountEuros * 100) }),
+        body: JSON.stringify({ amountCents: Math.round(amountUsd * 100) }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Withdrawal failed'); return; }
-      toast.success(`€${amountEuros.toFixed(2)} withdrawal initiated!`);
+      toast.success(`$${amountUsd.toFixed(2)} withdrawal initiated!`);
       setWithdrawAmount('');
       // Refresh creator data
       const updated = await creatorsAPI.getProfile();
@@ -164,7 +190,7 @@ export default function CreatorDashboard() {
     },
     { 
       label: 'Monthly revenue', 
-      value: `€${(creator?.monthlyRevenue || 0).toLocaleString()}`, 
+      value: `$${(creator?.monthlyRevenue || 0).toLocaleString()}`,
       icon: DollarSign,
       positive: true 
     },
@@ -268,13 +294,13 @@ export default function CreatorDashboard() {
                 <div className="bg-secondary/50 rounded-xl p-4">
                   <p className="text-xs text-muted-foreground mb-1">Available</p>
                   <p className="font-display font-bold text-xl text-green-400">
-                    €{((creator.availableBalance || 0) / 100).toFixed(2)}
+                    ${((creator.availableBalance || 0) / 100).toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-secondary/50 rounded-xl p-4">
                   <p className="text-xs text-muted-foreground mb-1">Pending</p>
                   <p className="font-display font-bold text-xl text-yellow-400">
-                    €{((creator.pendingBalance || 0) / 100).toFixed(2)}
+                    ${((creator.pendingBalance || 0) / 100).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -284,7 +310,7 @@ export default function CreatorDashboard() {
                     type="number"
                     min="10"
                     step="1"
-                    placeholder="Amount (€)"
+                    placeholder="Amount ($)"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     className="flex-1 rounded-xl border border-input bg-secondary/50 px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -344,6 +370,65 @@ export default function CreatorDashboard() {
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {!isLoading && creator && (
+          <div className="glass-elevated rounded-2xl p-6 mb-8">
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <HandCoins size={20} className="text-amber-400" />
+                </div>
+                <div>
+                  <h2 className="font-display font-semibold text-lg text-foreground">Recent Tips</h2>
+                  <p className="text-xs text-muted-foreground">Latest supporter tips credited to your balance</p>
+                </div>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {creator.recentTips?.length || 0} recent {creator.recentTips?.length === 1 ? 'tip' : 'tips'}
+              </span>
+            </div>
+
+            {creator.recentTips && creator.recentTips.length > 0 ? (
+              <div className="space-y-3">
+                {creator.recentTips.map((tip) => (
+                  <div
+                    key={tip.id}
+                    className="flex items-center gap-4 rounded-xl bg-secondary/50 px-4 py-3"
+                  >
+                    <img
+                      src={tip.supporter?.image || '/user.png'}
+                      alt={tip.supporter?.name || tip.supporter?.username || 'Supporter'}
+                      className="h-11 w-11 rounded-full object-cover bg-white"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-foreground">
+                        {tip.supporter?.name || (tip.supporter?.username ? `@${tip.supporter.username}` : 'Anonymous supporter')}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock3 size={12} />
+                        <span>{new Date(tip.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-display text-lg font-bold text-amber-300">
+                        +${tip.amount.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">net to creator</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center">
+                <HandCoins size={28} className="mx-auto mb-3 text-muted-foreground" />
+                <p className="font-medium text-foreground">No tips yet</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Tips sent from your profile will appear here once Stripe confirms the payment.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

@@ -132,10 +132,10 @@ export default function Promotions() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-display font-bold text-2xl text-primary">
-                        €{getDiscountedPrice(promo.originalPrice, promo.discount)}
+                        ${getDiscountedPrice(promo.originalPrice, promo.discount)}
                       </span>
                       <span className="text-muted-foreground line-through">
-                        €{promo.originalPrice}
+                        ${promo.originalPrice}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">

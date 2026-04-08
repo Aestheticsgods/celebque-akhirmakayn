@@ -261,7 +261,7 @@ export default function Profile() {
                           </p>
                         </div>
                         <span className="text-sm text-primary font-medium">
-                          €{sub.creator.subscriptionFee.toFixed(2)}/month
+                          ${sub.creator.subscriptionFee.toFixed(2)}/month
                         </span>
                       </Link>
                     ))}

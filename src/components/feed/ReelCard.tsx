@@ -227,7 +227,7 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
               </p>
               <Link href={`/creators/${post.creatorId}`}>
                 <Button className="gradient-primary w-full">
-                  Subscribe - €{Number(post.creator?.subscriptionFee || 9.99).toFixed(2)}/month
+                  Subscribe - ${Number(post.creator?.subscriptionFee || 9.99).toFixed(2)}/month
                 </Button>
               </Link>
             </div>

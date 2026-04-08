@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { GLOBAL_SUBSCRIPTION_FEE_CENTS } from '@/lib/pricing';
 import { buildPaymentLinkRedirectUrl, getPaymentLinkTarget } from '@/lib/stripePaymentLinks';
 
 export async function POST(req: NextRequest) {
@@ -25,37 +24,29 @@ export async function POST(req: NextRequest) {
     if (!creator) return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
 
     if (creator.userId === user.id) {
-      return NextResponse.json({ error: 'Cannot subscribe to yourself' }, { status: 400 });
+      return NextResponse.json({ error: 'Cannot tip yourself' }, { status: 400 });
     }
 
-    const { paymentLinkId, url } = await getPaymentLinkTarget('subscription');
-
-    // Check if user already has an active subscription
-    const existing = await prisma.subscription.findUnique({
-      where: { subscriberId_creatorId: { subscriberId: user.id, creatorId } },
-    });
-    if (existing?.isActive) {
-      return NextResponse.json({ error: 'Already subscribed' }, { status: 400 });
-    }
+    const { paymentLinkId, url } = await getPaymentLinkTarget('tip');
 
     await prisma.$transaction([
       prisma.transaction.updateMany({
         where: {
           userId: user.id,
-          type: 'SUBSCRIPTION_PAYMENT',
+          type: 'DEPOSIT',
           status: 'PENDING',
         },
         data: {
           status: 'CANCELLED',
-          description: 'Replaced by a newer subscription checkout',
+          description: 'Replaced by a newer tip checkout',
         },
       }),
       prisma.transaction.create({
         data: {
           userId: user.id,
-          type: 'SUBSCRIPTION_PAYMENT',
-          amount: GLOBAL_SUBSCRIPTION_FEE_CENTS,
-          description: `Pending subscription checkout for creator ${creator.id}`,
+          type: 'DEPOSIT',
+          amount: 0,
+          description: `Pending tip checkout for creator ${creator.id}`,
           status: 'PENDING',
           relatedUserId: creator.userId,
           stripeId: paymentLinkId,
@@ -67,7 +58,7 @@ export async function POST(req: NextRequest) {
       url: buildPaymentLinkRedirectUrl(url, user.email),
     });
   } catch (error) {
-    console.error('[stripe/checkout] Error:', error);
-    return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+    console.error('[stripe/tip] Error:', error);
+    return NextResponse.json({ error: 'Failed to start tip checkout' }, { status: 500 });
   }
 }

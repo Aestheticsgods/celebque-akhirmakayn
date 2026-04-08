@@ -205,7 +205,6 @@ export function AppSidebar() {
               {isCollapsed && (
                 <div className="absolute left-full ml-2 px-3 py-1.5 bg-popover text-popover-foreground text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
                   {item.label}
-                  {displayValue && <span className="ml-2 text-muted-foreground">{displayValue}</span>}
                 </div>
               )}
             </Link>

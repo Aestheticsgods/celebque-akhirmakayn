@@ -137,10 +137,10 @@ export default function BecomeCreator() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
-                Monthly subscription price (€)
+                Monthly subscription price ($)
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
                   type="number"
                   min="1"

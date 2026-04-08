@@ -43,6 +43,13 @@ DATABASE_URL="mysql://user:password@localhost:3306/celebque"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-here"
 
+# Global monthly subscription fee in USD
+NEXT_PUBLIC_GLOBAL_SUBSCRIPTION_FEE_USD="50"
+
+# Stripe hosted payment links
+STRIPE_SUBSCRIPTION_PAYMENT_LINK_URL="https://buy.stripe.com/28E7sN2RIecM0jUa6RcMM0L"
+STRIPE_TIP_PAYMENT_LINK_URL="https://buy.stripe.com/cNi8wRdwmb0Ac2C1AlcMM0M"
+
 # Google OAuth (optional for Google sign-in)
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
@@ -248,7 +255,7 @@ Create a Stripe webhook endpoint:
 Subscribe to at least:
 
 - checkout.session.completed
-- invoice.payment_succeeded
+- invoice.paid
 - customer.subscription.deleted
 - account.updated
 
