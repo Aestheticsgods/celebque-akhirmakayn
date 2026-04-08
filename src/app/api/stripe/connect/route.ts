@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { stripe } from '@/lib/stripe';
+import { hasStripeSecretKey, stripe } from '@/lib/stripe';
 
 const STRIPE_MOCK_MODE =
   process.env.STRIPE_MOCK_MODE === 'true' ||
   process.env.STRIPE_SECRET_KEY?.includes('REPLACE_ME');
+
+function resolveAppUrl(req: NextRequest) {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, '');
+  }
+
+  const origin = req.nextUrl.origin;
+  return origin.replace(/\/$/, '');
+}
+
+function isSecureOrLocal(url: string) {
+  return url.startsWith('https://') || url.startsWith('http://localhost');
+}
 
 // POST — Create or refresh a Stripe Connect Express account link for the creator
 export async function POST(req: NextRequest) {
@@ -25,7 +39,23 @@ export async function POST(req: NextRequest) {
     }
 
     const creator = user.creator;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = resolveAppUrl(req);
+
+    if (!STRIPE_MOCK_MODE && !hasStripeSecretKey) {
+      return NextResponse.json(
+        { error: 'Stripe is not configured: missing STRIPE_SECRET_KEY' },
+        { status: 500 }
+      );
+    }
+
+    if (!isSecureOrLocal(appUrl)) {
+      return NextResponse.json(
+        {
+          error: 'Invalid NEXT_PUBLIC_APP_URL. Use https:// in production (or http://localhost locally).',
+        },
+        { status: 500 }
+      );
+    }
 
     if (STRIPE_MOCK_MODE) {
       await prisma.creator.update({
@@ -95,6 +125,13 @@ export async function GET(req: NextRequest) {
     }
 
     const creator = user.creator;
+
+    if (!STRIPE_MOCK_MODE && !hasStripeSecretKey) {
+      return NextResponse.json(
+        { error: 'Stripe is not configured: missing STRIPE_SECRET_KEY' },
+        { status: 500 }
+      );
+    }
 
     if (STRIPE_MOCK_MODE) {
       return NextResponse.json({
