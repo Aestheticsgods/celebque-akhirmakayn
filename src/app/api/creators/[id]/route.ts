@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { centsToEuros, eurosToCents } from '@/lib/pricing';
+import { centsToDollars, dollarsToCents } from '@/lib/pricing';
 
 // GET single creator by ID
 export async function GET(
@@ -40,7 +40,7 @@ export async function GET(
     return NextResponse.json(
       {
         ...creator,
-        subscriptionFee: centsToEuros(creator.subscriptionFee),
+        subscriptionFee: centsToDollars(creator.subscriptionFee),
         postCount: creator.posts.length,
         subscriberCount: creator.subscribers.length,
       },
@@ -95,7 +95,7 @@ export async function PUT(
     const { displayName, bio, avatar, banner, subscriptionFee, category, website } = body;
 
     const subscriptionFeeCents = subscriptionFee !== undefined
-      ? eurosToCents(Number(subscriptionFee))
+      ? dollarsToCents(Number(subscriptionFee))
       : undefined;
 
     const updatedCreator = await prisma.creator.update({
@@ -114,7 +114,7 @@ export async function PUT(
     return NextResponse.json(
       {
         ...updatedCreator,
-        subscriptionFee: centsToEuros(updatedCreator.subscriptionFee),
+        subscriptionFee: centsToDollars(updatedCreator.subscriptionFee),
       },
       { status: 200 }
     );
