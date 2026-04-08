@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { likesAPI, commentsAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { GLOBAL_SUBSCRIPTION_FEE_USD } from '@/lib/pricing';
 
 interface ReelCardProps {
   post: Post;
@@ -227,7 +228,7 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
               </p>
               <Link href={`/creators/${post.creatorId}`}>
                 <Button className="gradient-primary w-full">
-                  Subscribe - ${Number(post.creator?.subscriptionFee || 9.99).toFixed(2)}/month
+                  Subscribe - ${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}/month
                 </Button>
               </Link>
             </div>

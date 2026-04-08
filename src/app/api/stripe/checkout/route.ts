@@ -4,6 +4,16 @@ import { prisma } from '@/lib/prisma';
 import { GLOBAL_SUBSCRIPTION_FEE_CENTS } from '@/lib/pricing';
 import { buildPaymentLinkRedirectUrl, getPaymentLinkTarget } from '@/lib/stripePaymentLinks';
 
+function getSafeErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return 'Unexpected error during checkout';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession();
@@ -68,6 +78,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('[stripe/checkout] Error:', error);
-    return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to create checkout session',
+        details: getSafeErrorMessage(error),
+      },
+      { status: 500 }
+    );
   }
 }

@@ -6,6 +6,7 @@ import { Settings, Star, Users, Heart, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
+import { GLOBAL_SUBSCRIPTION_FEE_USD } from '@/lib/pricing';
 
 interface UserProfile {
   id: string;
@@ -261,7 +262,7 @@ export default function Profile() {
                           </p>
                         </div>
                         <span className="text-sm text-primary font-medium">
-                          ${sub.creator.subscriptionFee.toFixed(2)}/month
+                          ${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}/month
                         </span>
                       </Link>
                     ))}

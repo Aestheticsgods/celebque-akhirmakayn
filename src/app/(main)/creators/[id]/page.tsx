@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
+import { GLOBAL_SUBSCRIPTION_FEE_USD } from '@/lib/pricing';
 
 interface Creator {
   id: string;
@@ -42,6 +43,7 @@ export default function CreatorProfile() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isTipping, setIsTipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function CreatorProfile() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || 'Failed to start checkout');
+        toast.error(data.details || data.error || 'Failed to start checkout');
         return;
       }
 
@@ -113,6 +115,38 @@ export default function CreatorProfile() {
       toast.error('Something went wrong. Please try again.');
     } finally {
       setIsSubscribing(false);
+    }
+  };
+
+  const handleTip = async () => {
+    if (!user) {
+      toast.error('Please log in to send a tip.');
+      return;
+    }
+    if (!creator) return;
+
+    try {
+      setIsTipping(true);
+      toast.info('Preparing tip checkout...');
+
+      const res = await fetch('/api/stripe/tip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creatorId: creator.id }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.details || data.error || 'Failed to start tip checkout');
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsTipping(false);
     }
   };
 
@@ -186,21 +220,33 @@ export default function CreatorProfile() {
               <p className="text-muted-foreground">@{creator.username}</p>
             </div>
             
-            {!isSubscribed ? (
+            <div className="flex w-full lg:w-auto flex-col gap-3 lg:flex-row">
+              {!isSubscribed ? (
+                <Button
+                  variant="gradient"
+                  size="lg"
+                  onClick={handleSubscribe}
+                  disabled={isSubscribing}
+                  className="w-full lg:w-auto"
+                >
+                  {isSubscribing ? 'Redirecting...' : `Subscribe - $${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}/month`}
+                </Button>
+              ) : (
+                <Button variant="secondary" size="lg" className="w-full lg:w-auto">
+                  Subscribed ✓
+                </Button>
+              )}
+
               <Button
-                variant="gradient"
+                variant="secondary"
                 size="lg"
-                onClick={handleSubscribe}
-                disabled={isSubscribing}
+                onClick={handleTip}
+                disabled={isTipping}
                 className="w-full lg:w-auto"
               >
-                {isSubscribing ? 'Redirecting...' : `Subscribe - €${creator?.subscriptionFee.toFixed(2)}/month`}
+                {isTipping ? 'Redirecting...' : 'Send Tip'}
               </Button>
-            ) : (
-              <Button variant="secondary" size="lg" className="w-full lg:w-auto">
-                Subscribed ✓
-              </Button>
-            )}
+            </div>
           </div>
 
           {/* Bio */}

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { Subscription } from '@/types';
+import { GLOBAL_SUBSCRIPTION_FEE_USD } from '@/lib/pricing';
 
 export default function Subscriptions() {
   const { user } = useAuth();
@@ -95,7 +96,7 @@ export default function Subscriptions() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-foreground">
-                      ${subscription.creator?.subscriptionFee?.toFixed(2)}/month
+                      ${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}/month
                     </span>
                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
                       Cancel
