@@ -8,18 +8,31 @@ export async function middleware(request: NextRequest) {
   const secFetchMode = request.headers.get('sec-fetch-mode');
   const secFetchDest = request.headers.get('sec-fetch-dest');
   const acceptHeader = request.headers.get('accept') ?? '';
-  const isDocumentRequest = acceptHeader.includes('text/html');
-  const isNavigationRequest =
-    isGetLikeRequest &&
-    ((secFetchMode === 'navigate' && secFetchDest === 'document') || isDocumentRequest);
-  const isRscRequest = request.headers.has('rsc') || request.nextUrl.searchParams.has('_rsc');
+  const hasRscParam = request.nextUrl.searchParams.has('_rsc');
+  const isRscRequest =
+    request.headers.has('rsc') ||
+    acceptHeader.includes('text/x-component') ||
+    request.headers.has('next-router-state-tree');
   const isPrefetchRequest =
     request.headers.has('next-router-prefetch') ||
     request.headers.get('purpose') === 'prefetch';
+  const isDataRequest = request.headers.has('x-nextjs-data');
+  const isNavigationByFetchMetadata = secFetchMode === 'navigate' && secFetchDest === 'document';
+  const isDocumentRequest = acceptHeader.includes('text/html') && !isRscRequest && !isPrefetchRequest && !isDataRequest;
+  const isNavigationRequest =
+    isGetLikeRequest && (isNavigationByFetchMetadata || isDocumentRequest);
+
+  // If a user lands on a URL containing internal Next.js RSC params,
+  // clean it so the browser always requests the document payload.
+  if (hasRscParam && isNavigationRequest) {
+    const cleanedUrl = request.nextUrl.clone();
+    cleanedUrl.searchParams.delete('_rsc');
+    return NextResponse.redirect(cleanedUrl);
+  }
 
   // Avoid auth redirects for internal RSC/prefetch/data requests and non-navigation requests.
   // Redirecting these can cause raw Flight payload text to be shown in the browser.
-  if (!isNavigationRequest || isRscRequest || isPrefetchRequest) {
+  if (!isNavigationRequest || isRscRequest || isPrefetchRequest || isDataRequest) {
     return NextResponse.next();
   }
 
