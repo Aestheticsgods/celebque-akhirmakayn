@@ -28,10 +28,21 @@ export async function middleware(request: NextRequest) {
     request.headers.has('next-router-prefetch') ||
     request.headers.get('purpose') === 'prefetch';
   const isDataRequest = request.headers.has('x-nextjs-data');
+  const requestCacheControl = request.headers.get('cache-control') || '';
+  const isManualRefreshRequest = requestCacheControl.includes('max-age=0');
   const isNavigationByFetchMetadata = secFetchMode === 'navigate' && secFetchDest === 'document';
   const isDocumentRequest = acceptHeader.includes('text/html') && !isRscRequest && !isPrefetchRequest && !isDataRequest;
   const isNavigationRequest =
     isGetLikeRequest && (isNavigationByFetchMetadata || isDocumentRequest);
+
+  // Some browsers/CDN edges can keep serving stale HTML on manual refresh,
+  // leading to old chunk filenames and 404s. Add a one-time cache-busting
+  // query param only for refresh navigations.
+  if (isNavigationRequest && isManualRefreshRequest && !request.nextUrl.searchParams.has('v')) {
+    const bustedUrl = request.nextUrl.clone();
+    bustedUrl.searchParams.set('v', Date.now().toString(36));
+    return NextResponse.redirect(bustedUrl, 307);
+  }
 
   // If a user lands on a URL containing internal Next.js RSC params,
   // clean it so the browser always requests the document payload.
