@@ -94,7 +94,6 @@ export async function POST(req: NextRequest) {
         email: user.email,
         metadata: { creatorId: creator.id, userId: user.id },
         capabilities: {
-          card_payments: { requested: true },
           transfers: { requested: true },
         },
       });
