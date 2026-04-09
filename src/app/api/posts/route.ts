@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma';
 function normalizeAssetUrl(url: unknown): unknown {
   if (typeof url !== 'string' || !url) return url;
 
+  // Already normalized
+  if (url.startsWith('/api/media/')) return url;
+
   try {
     // Handle absolute URLs that contain an /uploads/media/ path
     const parsed = new URL(url);
@@ -18,6 +21,11 @@ function normalizeAssetUrl(url: unknown): unknown {
       const filename = url.split('/').pop();
       if (filename) return `/api/media/${filename}`;
     }
+  }
+
+  // Bare filename (e.g. "abc123.png") — no leading slash, no protocol
+  if (!url.startsWith('/') && !url.startsWith('http') && /\.(png|jpg|jpeg|gif|webp|mp4|webm)$/i.test(url)) {
+    return `/api/media/${url}`;
   }
 
   return url;

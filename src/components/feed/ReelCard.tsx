@@ -41,6 +41,9 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
   const resolveAssetUrl = (url?: string | null): string => {
     if (!url) return '';
 
+    // Already normalized
+    if (url.startsWith('/api/media/')) return url;
+
     // Remap legacy static-upload paths to the API media route.
     if (url.startsWith('/uploads/media/')) {
       const filename = url.split('/').pop();
@@ -55,6 +58,11 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
       }
     } catch {
       // Relative or malformed URL — return as-is.
+    }
+
+    // Bare filename (e.g. "abc123.png")
+    if (!url.startsWith('/') && !url.startsWith('http') && /\.(png|jpg|jpeg|gif|webp|mp4|webm)$/i.test(url)) {
+      return `/api/media/${url}`;
     }
 
     return url;

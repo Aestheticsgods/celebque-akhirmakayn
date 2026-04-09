@@ -3,6 +3,27 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { centsToDollars } from '@/lib/pricing';
 
+function normalizeAssetUrl(url: unknown): unknown {
+  if (typeof url !== 'string' || !url) return url;
+  if (url.startsWith('/api/media/')) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith('/uploads/media/')) {
+      const filename = parsed.pathname.split('/').pop();
+      if (filename) return `/api/media/${filename}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    if (url.startsWith('/uploads/media/')) {
+      const filename = url.split('/').pop();
+      if (filename) return `/api/media/${filename}`;
+    }
+  }
+  if (!url.startsWith('/') && !url.startsWith('http') && /\.(png|jpg|jpeg|gif|webp|mp4|webm)$/i.test(url)) {
+    return `/api/media/${url}`;
+  }
+  return url;
+}
+
 // GET single creator by ID
 export async function GET(
   req: NextRequest,
@@ -41,7 +62,8 @@ export async function GET(
     return NextResponse.json(
       {
         ...creator,
-        avatar: creator.avatar || creator.user?.image || undefined,
+        avatar: normalizeAssetUrl(creator.avatar || creator.user?.image) || undefined,
+        banner: normalizeAssetUrl(creator.banner) || undefined,
         subscriptionFee: centsToDollars(creator.subscriptionFee),
         postCount: creator.posts.length,
         subscriberCount: creator.subscribers.length,
