@@ -3,11 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 function nextNoStore() {
   const response = NextResponse.next();
-  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, no-transform');
+  response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate, no-transform');
   response.headers.set('CDN-Cache-Control', 'no-store');
   response.headers.set('Surrogate-Control', 'no-store');
   response.headers.set('Pragma', 'no-cache');
   response.headers.set('Expires', '0');
+  // Tell CDN/proxy that RSC vs HTML are different responses for the same URL
+  response.headers.set('Vary', 'RSC, Next-Router-State-Tree, Next-Router-Prefetch, Accept');
+  response.headers.set('x-middleware-cache', 'no-cache');
   return response;
 }
 
@@ -56,10 +59,11 @@ export async function middleware(request: NextRequest) {
 
   // If a user lands on a URL containing internal Next.js RSC params,
   // clean it so the browser always requests the document payload.
-  if (hasRscParam && isNavigationRequest) {
+  // Use broad detection: any text/html request with _rsc should be cleaned.
+  if (hasRscParam && (isNavigationRequest || acceptHeader.includes('text/html'))) {
     const cleanedUrl = request.nextUrl.clone();
     cleanedUrl.searchParams.delete('_rsc');
-    return NextResponse.redirect(cleanedUrl);
+    return NextResponse.redirect(cleanedUrl, 307);
   }
 
   // Avoid auth redirects for internal RSC/prefetch/data requests and non-navigation requests.
