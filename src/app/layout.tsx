@@ -43,6 +43,39 @@ export default function RootLayout({
             `,
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                var reloadFlagKey = 'celebque_chunk_reload_once';
+
+                function recoverFromChunkError(message) {
+                  var text = String(message || '');
+                  var isChunkError =
+                    text.includes('ChunkLoadError') ||
+                    text.includes('Failed to load chunk') ||
+                    text.includes('/_next/static/chunks/');
+
+                  if (!isChunkError) return;
+                  if (sessionStorage.getItem(reloadFlagKey) === '1') return;
+
+                  sessionStorage.setItem(reloadFlagKey, '1');
+                  var separator = window.location.search ? '&' : '?';
+                  window.location.replace(window.location.pathname + window.location.search + separator + 'v=' + Date.now() + window.location.hash);
+                }
+
+                window.addEventListener('error', function (event) {
+                  recoverFromChunkError(event && (event.message || (event.error && event.error.message)));
+                });
+
+                window.addEventListener('unhandledrejection', function (event) {
+                  var reason = event && event.reason;
+                  recoverFromChunkError(reason && (reason.message || reason));
+                });
+              })();
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${outfit.variable} font-sans antialiased`}>
         <SessionProvider>
