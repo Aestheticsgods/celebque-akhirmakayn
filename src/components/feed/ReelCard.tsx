@@ -35,39 +35,26 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
   const pauseIconTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
-  const resolveAssetUrl = (url?: string | null) => {
+  // URLs are already normalised to /api/media/ by the posts API.
+  // This helper only needs to handle the legacy /uploads/media/ paths that may
+  // still be stored in the DB and returned for non-post contexts.
+  const resolveAssetUrl = (url?: string | null): string => {
     if (!url) return '';
 
-    if (typeof window === 'undefined') {
-      return url;
+    // Remap legacy static-upload paths to the API media route.
+    if (url.startsWith('/uploads/media/')) {
+      const filename = url.split('/').pop();
+      if (filename) return `/api/media/${filename}`;
     }
 
     try {
       const parsedUrl = new URL(url);
-
       if (parsedUrl.pathname.startsWith('/uploads/media/')) {
         const filename = parsedUrl.pathname.split('/').pop();
-        if (filename) {
-          return `${window.location.origin}/api/media/${filename}${parsedUrl.search}${parsedUrl.hash}`;
-        }
-      }
-
-      const isUploadsPath = parsedUrl.pathname.startsWith('/uploads/');
-      const isDifferentHost = parsedUrl.host !== window.location.host;
-      const isMixedProtocol =
-        window.location.protocol === 'https:' && parsedUrl.protocol === 'http:';
-
-      if (isUploadsPath && (isDifferentHost || isMixedProtocol)) {
-        return `${window.location.origin}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+        if (filename) return `/api/media/${filename}${parsedUrl.search}${parsedUrl.hash}`;
       }
     } catch {
-      if (url.startsWith('/uploads/media/')) {
-        const filename = url.split('/').pop();
-        if (filename) {
-          return `${window.location.origin}/api/media/${filename}`;
-        }
-      }
-      // Relative URLs and malformed URLs are returned as-is.
+      // Relative or malformed URL — return as-is.
     }
 
     return url;

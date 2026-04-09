@@ -2,33 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 
-function normalizeAssetUrlForRequest(url: unknown, requestOrigin: string): unknown {
+function normalizeAssetUrl(url: unknown): unknown {
   if (typeof url !== 'string' || !url) return url;
-
-  const requestUrl = new URL(requestOrigin);
-
-  const mapToApiMedia = (pathname: string, search = '', hash = '') => {
-    if (!pathname.startsWith('/uploads/media/')) return null;
-    const filename = pathname.split('/').pop();
-    if (!filename) return null;
-    return `${requestUrl.origin}/api/media/${filename}${search}${hash}`;
-  };
 
   try {
     const parsed = new URL(url);
-    const mapped = mapToApiMedia(parsed.pathname, parsed.search, parsed.hash);
-    if (mapped) return mapped;
-
-    const isUploadsPath = parsed.pathname.startsWith('/uploads/');
-    const isDifferentHost = parsed.host !== requestUrl.host;
-    const isMixedProtocol = requestUrl.protocol === 'https:' && parsed.protocol === 'http:';
-
-    if (isUploadsPath && (isDifferentHost || isMixedProtocol)) {
-      return `${requestUrl.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    if (parsed.pathname.startsWith('/uploads/media/')) {
+      const filename = parsed.pathname.split('/').pop();
+      if (filename) return `/api/media/${filename}${parsed.search}${parsed.hash}`;
     }
   } catch {
-    const mapped = mapToApiMedia(url);
-    if (mapped) return mapped;
+    if (url.startsWith('/uploads/media/')) {
+      const filename = url.split('/').pop();
+      if (filename) return `/api/media/${filename}`;
+    }
   }
 
   return url;
@@ -38,7 +25,6 @@ function normalizeAssetUrlForRequest(url: unknown, requestOrigin: string): unkno
 // GET - Get all comments for a post
 export async function GET(req: NextRequest) {
   try {
-    const requestOrigin = new URL(req.url).origin;
     const { searchParams } = new URL(req.url);
     const postId = searchParams.get('postId');
     const page = parseInt(searchParams.get('page') || '1');
@@ -82,7 +68,7 @@ export async function GET(req: NextRequest) {
           user: comment.user
             ? {
                 ...comment.user,
-                image: normalizeAssetUrlForRequest(comment.user.image, requestOrigin),
+                image: normalizeAssetUrl(comment.user.image),
               }
             : comment.user,
           likeCount: comment.likes.length,
@@ -108,7 +94,6 @@ export async function GET(req: NextRequest) {
 // POST - Create a comment
 export async function POST(req: NextRequest) {
   try {
-    const requestOrigin = new URL(req.url).origin;
     const session = await getServerSession();
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -192,7 +177,7 @@ export async function POST(req: NextRequest) {
         user: comment.user
           ? {
               ...comment.user,
-              image: normalizeAssetUrlForRequest(comment.user.image, requestOrigin),
+              image: normalizeAssetUrl(comment.user.image),
             }
           : comment.user,
       },

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // Generate unique filename
     const extension = file.name.split('.').pop();
     const filename = `${randomBytes(16).toString('hex')}.${extension}`;
-    const uploadDir = join(process.cwd(), 'uploads', 'media');
+    const uploadDir = join(process.cwd(), 'public', 'uploads', 'media');
 
     // Ensure directory exists
     await mkdir(uploadDir, { recursive: true });
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(filepath, buffer);
 
-    // Return stable API media URL
+    // Return API media URL (served via /api/media/ route which checks both locations)
     const publicUrl = `/api/media/${filename}`;
 
     return NextResponse.json(
