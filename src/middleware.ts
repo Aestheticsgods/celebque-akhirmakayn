@@ -1,6 +1,16 @@
 import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
 
+function nextNoStore() {
+  const response = NextResponse.next();
+  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, no-transform');
+  response.headers.set('CDN-Cache-Control', 'no-store');
+  response.headers.set('Surrogate-Control', 'no-store');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const forwardedHost = request.headers.get('x-forwarded-host') ?? '';
@@ -55,7 +65,7 @@ export async function middleware(request: NextRequest) {
   // Avoid auth redirects for internal RSC/prefetch/data requests and non-navigation requests.
   // Redirecting these can cause raw Flight payload text to be shown in the browser.
   if (!isNavigationRequest || isRscRequest || isPrefetchRequest || isDataRequest) {
-    return NextResponse.next();
+    return nextNoStore();
   }
 
   const token = await getToken({
@@ -81,7 +91,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/home', request.url));
   }
 
-  return NextResponse.next();
+  return nextNoStore();
 }
 
 export const config = {
