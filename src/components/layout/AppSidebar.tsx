@@ -103,13 +103,11 @@ export function AppSidebar() {
           "flex items-center gap-3",
           isCollapsed ? "justify-center" : ""
         )}>
-            {user?.image && (
           <img
-            src={user.image}
-            alt={user?.name}
+            src={user?.image || '/user.png'}
+            alt={user?.name || 'User'}
             className="w-10 h-10 rounded-full object-cover bg-white ring-2 ring-primary/30"
           />
-          )}
           <AnimatePresence mode="wait">
             {!isCollapsed && (
               <motion.div

@@ -156,13 +156,11 @@ export default function Profile() {
             >
               {/* Avatar & Info */}
               <div className="flex flex-col items-center text-center mb-8">
-                {profile.image && (
-                  <img
-                    src={profile.image}
-                    alt={profile.username || 'Profile'}
-                    className="w-32 h-32 bg-white rounded-full object-cover ring-4 ring-background shadow-xl mb-4"
-                  />
-                )}
+                <img
+                  src={profile.image || '/user.png'}
+                  alt={profile.username || 'Profile'}
+                  className="w-32 h-32 bg-white rounded-full object-cover ring-4 ring-background shadow-xl mb-4"
+                />
                 <h1 className="font-display font-bold text-2xl text-foreground">
                   {profile.username || profile.name || 'User'}
                 </h1>
