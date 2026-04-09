@@ -108,8 +108,7 @@ export default function Discover() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="glass-elevated rounded-2xl overflow-hidden">
-                <Skeleton className="h-24 w-full" />
-                <div className="p-5 -mt-8">
+                <div className="p-5">
                   <div className="flex gap-4 mb-4">
                     <Skeleton className="w-16 h-16 rounded-full flex-shrink-0" />
                     <div className="flex-1">
@@ -140,18 +139,8 @@ export default function Discover() {
                 href={`/creators/${creator.id}`}
                 className="block glass-elevated rounded-2xl overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all group"
               >
-                {/* Banner */}
-                <div className="relative h-24">
-                  <img
-                    src={creator.banner}
-                    alt={`${creator.displayName} banner`}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-                </div>
-
                 {/* Content */}
-                <div className="p-5 -mt-8 relative">
+                <div className="p-5 relative">
                   <div className="flex items-end gap-4 mb-3">
                     <img
                       src={creator.avatar}
