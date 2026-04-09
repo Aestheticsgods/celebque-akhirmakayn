@@ -6,6 +6,7 @@ import { ArrowLeft, Upload, Loader2, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
 
 interface UserProfile {
   id: string;
@@ -18,6 +19,7 @@ interface UserProfile {
 
 export default function ProfileSettings() {
   const { user, isLoading } = useAuth();
+  const { update } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -127,6 +129,12 @@ export default function ProfileSettings() {
 
       const data = await response.json();
       setProfile(data.user);
+
+      await update({
+        name: data.user?.name ?? null,
+        image: data.user?.image ?? null,
+      });
+
       setMessage({ type: 'success', text: 'Profile updated successfully' });
       
       // Refresh the page to update user context

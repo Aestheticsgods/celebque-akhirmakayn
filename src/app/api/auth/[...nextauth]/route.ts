@@ -62,11 +62,16 @@ const handler = NextAuth({
       if (user) {
         token.id = user.id;
         token.isCreator = (user as any).isCreator;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image ?? null;
       }
       
       // Handle session updates from client-side update() call
       if (trigger === 'update' && session) {
         token.isCreator = session.isCreator ?? token.isCreator;
+        token.name = session.name ?? token.name;
+        token.picture = session.image ?? token.picture;
       }
       
       return token;
@@ -75,6 +80,9 @@ const handler = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.name = (token.name as string | undefined) ?? null;
+        session.user.email = (token.email as string | undefined) ?? session.user.email;
+        session.user.image = (token.picture as string | undefined) ?? null;
         (session.user as any).isCreator = token.isCreator;
       }
       return session;
