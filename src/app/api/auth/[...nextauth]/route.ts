@@ -4,10 +4,6 @@ import GoogleProvider from 'next-auth/providers/google';
 import { prisma } from '@/lib/prisma';
 import { compare } from 'bcryptjs';
 
-// How long (ms) before we re-fetch user fields from the DB to keep
-// profile picture / name in sync across all devices.
-const SESSION_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-
 const providers: any[] = [
   CredentialsProvider({
     name: 'Credentials',
@@ -69,7 +65,6 @@ const handler = NextAuth({
         token.name = user.name;
         token.email = user.email;
         token.picture = user.image ?? null;
-        token.fetchedAt = Date.now();
       }
 
       // Handle session updates from client-side update() call
@@ -77,29 +72,6 @@ const handler = NextAuth({
         token.isCreator = session.isCreator ?? token.isCreator;
         token.name = session.name ?? token.name;
         token.picture = session.image ?? token.picture;
-        token.fetchedAt = Date.now();
-      }
-
-      // Re-fetch fresh user fields from the DB when the cached token is stale.
-      // This keeps profile picture / name synced across all devices automatically.
-      const fetchedAt = (token.fetchedAt as number | undefined) ?? 0;
-      const isStale = Date.now() - fetchedAt > SESSION_REFRESH_INTERVAL_MS;
-
-      if (isStale && token.email) {
-        try {
-          const freshUser = await prisma.user.findUnique({
-            where: { email: token.email as string },
-            select: { name: true, image: true, isCreator: true },
-          });
-          if (freshUser) {
-            token.name = freshUser.name;
-            token.picture = freshUser.image ?? null;
-            token.isCreator = freshUser.isCreator;
-            token.fetchedAt = Date.now();
-          }
-        } catch {
-          // DB unavailable – continue with stale token, will retry next cycle.
-        }
       }
 
       return token;

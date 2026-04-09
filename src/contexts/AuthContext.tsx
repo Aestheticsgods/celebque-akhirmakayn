@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -20,10 +20,48 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status, update } = useSession();
   const router = useRouter();
+  const hasSyncedProfileRef = useRef(false);
   
   const isLoading = status === 'loading';
   const isAuthenticated = !!session?.user;
   const user = session?.user;
+
+  useEffect(() => {
+    const syncSessionProfile = async () => {
+      if (!isAuthenticated || isLoading || hasSyncedProfileRef.current) {
+        return;
+      }
+
+      hasSyncedProfileRef.current = true;
+
+      try {
+        const response = await fetch('/api/user/update', { cache: 'no-store' });
+        if (!response.ok) {
+          return;
+        }
+
+        const profile = await response.json();
+        const sessionUser = session?.user;
+
+        const hasChanged =
+          (profile?.name ?? null) !== (sessionUser?.name ?? null) ||
+          (profile?.image ?? null) !== (sessionUser?.image ?? null) ||
+          Boolean(profile?.isCreator) !== Boolean((sessionUser as any)?.isCreator);
+
+        if (hasChanged) {
+          await update({
+            name: profile?.name ?? null,
+            image: profile?.image ?? null,
+            isCreator: Boolean(profile?.isCreator),
+          });
+        }
+      } catch {
+        // Non-blocking sync; ignore transient failures.
+      }
+    };
+
+    syncSessionProfile();
+  }, [isAuthenticated, isLoading, session?.user, update]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
