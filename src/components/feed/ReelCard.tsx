@@ -35,6 +35,35 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
   const pauseIconTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
+  const resolveAssetUrl = (url?: string | null) => {
+    if (!url) return '';
+
+    if (typeof window === 'undefined') {
+      return url;
+    }
+
+    try {
+      const parsedUrl = new URL(url);
+      const isLocalhostSource = parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1';
+      const isDifferentHost =
+        window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
+      if (isLocalhostSource && isDifferentHost) {
+        return `${window.location.origin}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+      }
+    } catch {
+      // Relative URLs and malformed URLs are returned as-is.
+    }
+
+    return url;
+  };
+
+  const primaryMediaUrl = resolveAssetUrl(post.mediaUrls?.[0]);
+  const creatorAvatarUrl = resolveAssetUrl(post.creator?.avatar || post.user?.image || '/user.png');
+  const isVideoPost = ['.mp4', '.webm'].some((extension) =>
+    primaryMediaUrl.toLowerCase().split('?')[0].endsWith(extension)
+  );
+
   // Check if user has liked this post on component mount
   useEffect(() => {
     const checkLikeStatus = async () => {
@@ -82,9 +111,10 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
       setLikeCount(prev => result.liked ? prev + 1 : prev - 1);
     } catch (error) {
       console.error('Failed to toggle like:', error);
+      const apiError = error as Error & { status?: number };
       toast({
         title: 'Error',
-        description: 'Failed to like this post',
+        description: apiError.status === 401 ? 'Please sign in again to like posts' : 'Failed to like this post',
         variant: 'destructive',
       });
     } finally {
@@ -112,9 +142,10 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
       });
     } catch (error) {
       console.error('Failed to post comment:', error);
+      const apiError = error as Error & { status?: number };
       toast({
         title: 'Error',
-        description: 'Failed to post comment',
+        description: apiError.status === 401 ? 'Please sign in again to comment' : 'Failed to post comment',
         variant: 'destructive',
       });
     } finally {
@@ -173,11 +204,11 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
       <div className="relative w-full max-w-md mx-auto h-full lg:h-[85vh] rounded-none lg:rounded-2xl overflow-hidden">
         {/* Media */}
         <div className="absolute inset-0 z-0">
-          {post.mediaUrls?.[0]?.toLowerCase().endsWith('.mp4') || post.mediaUrls?.[0]?.toLowerCase().endsWith('.webm') ? (
+          {isVideoPost ? (
             <>
               <video
                 ref={videoRef}
-                src={post.mediaUrls[0]}
+                src={primaryMediaUrl}
                 className="w-full h-full object-cover cursor-pointer"
                 autoPlay
                 muted
@@ -204,7 +235,7 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
             </>
           ) : (
             <img
-              src={post.mediaUrls?.[0] || 'https://via.placeholder.com/800x1200'}
+              src={primaryMediaUrl || 'https://via.placeholder.com/800x1200'}
               alt={post.caption}
               className="w-full h-full object-cover"
             />
@@ -243,7 +274,7 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
             className="flex items-center gap-3 mb-4 group pointer-events-auto"
           >
             <img
-              src={post.creator?.avatar || post.user?.image || '/user.png'}
+              src={creatorAvatarUrl}
               alt={post.creator?.displayName || 'Creator'}
               className="w-12 h-12 rounded-full object-cover bg-white ring-2 ring-primary/50 group-hover:ring-primary transition-all"
             />
@@ -353,7 +384,7 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
                   comments.map((comment: any) => (
                     <div key={comment.id} className="flex gap-3">
                       <img
-                        src={comment.user?.image || '/user.png'}
+                        src={resolveAssetUrl(comment.user?.image || '/user.png')}
                         alt={comment.user?.name}
                         className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                       />

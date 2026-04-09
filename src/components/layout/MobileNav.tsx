@@ -2,23 +2,27 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, Bell, MessageCircle, User } from 'lucide-react';
+import { Home, Compass, Bell, MessageCircle, User, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-
-const navItems = [
-  { icon: Home, label: 'Home', path: '/' },
-  { icon: Compass, label: 'Discover', path: '/discover' },
-  { icon: Bell, label: 'Notifications', path: '/notifications' },
-  { icon: MessageCircle, label: 'Messages', path: '/messages' },
-  { icon: User, label: 'Profile', path: '/profile' },
-];
+import { useSession } from 'next-auth/react';
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
+  const navItems = [
+    { icon: Home, label: 'Home', path: '/home' },
+    session?.user && (session.user as any).isCreator
+      ? { icon: Star, label: 'Dashboard', path: '/creator/dashboard' }
+      : { icon: Compass, label: 'Discover', path: '/discover' },
+    { icon: Bell, label: 'Notifications', path: '/notifications' },
+    { icon: MessageCircle, label: 'Messages', path: '/messages' },
+    { icon: User, label: 'Profile', path: '/profile' },
+  ];
 
   useEffect(() => {
     const fetchUnreadCounts = async () => {

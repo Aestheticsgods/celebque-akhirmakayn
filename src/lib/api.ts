@@ -1,9 +1,26 @@
 // API Helper functions for client-side calls
 
 const rawApiBase = process.env.NEXT_PUBLIC_API_URL?.trim();
-const API_BASE = rawApiBase
-  ? rawApiBase.replace(/\/$/, '')
+const API_BASE = typeof window === 'undefined'
+  ? (rawApiBase ? rawApiBase.replace(/\/$/, '') : '/api')
   : '/api';
+
+const throwApiError = async (res: Response, fallbackMessage: string): Promise<never> => {
+  let message = fallbackMessage;
+
+  try {
+    const data = await res.json();
+    if (typeof data?.error === 'string' && data.error.trim()) {
+      message = data.error;
+    }
+  } catch {
+    // Use fallback message when body is not JSON
+  }
+
+  const error = new Error(message) as Error & { status?: number };
+  error.status = res.status;
+  throw error;
+};
 
 // =====================================================
 // UPLOADS
@@ -85,7 +102,7 @@ export const creatorsAPI = {
 
   getProfile: async () => {
     const res = await fetch(`${API_BASE}/creator/profile`);
-    if (!res.ok) throw new Error('Failed to fetch creator profile');
+    if (!res.ok) return throwApiError(res, 'Failed to fetch creator profile');
     return res.json();
   },
 };
@@ -158,7 +175,7 @@ export const likesAPI = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
-    if (!res.ok) throw new Error('Failed to toggle like');
+    if (!res.ok) return throwApiError(res, 'Failed to toggle like');
     return res.json();
   },
 };
@@ -185,7 +202,7 @@ export const commentsAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ postId, content }),
     });
-    if (!res.ok) throw new Error('Failed to create comment');
+    if (!res.ok) return throwApiError(res, 'Failed to create comment');
     return res.json();
   },
 

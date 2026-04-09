@@ -92,7 +92,21 @@ export default function CreatorDashboard() {
         setCreatorPosts(posts || []);
       } catch (err) {
         console.error('Failed to load creator data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load creator data');
+        const apiError = err as Error & { status?: number };
+
+        if (apiError.status === 401) {
+          toast.error('Please sign in to access your creator dashboard');
+          router.push('/');
+          return;
+        }
+
+        if (apiError.status === 404) {
+          toast.error('Creator profile not found. Complete creator setup first.');
+          router.push('/become-creator');
+          return;
+        }
+
+        setError(apiError.message || 'Failed to load creator data');
       } finally {
         setIsLoading(false);
       }
