@@ -2,10 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 
+function normalizeAssetUrlForRequest(url: unknown, requestOrigin: string): unknown {
+  if (typeof url !== 'string' || !url) return url;
+
+  try {
+    const parsed = new URL(url);
+    const requestUrl = new URL(requestOrigin);
+    const isUploadsPath = parsed.pathname.startsWith('/uploads/');
+    const isDifferentHost = parsed.host !== requestUrl.host;
+    const isMixedProtocol = requestUrl.protocol === 'https:' && parsed.protocol === 'http:';
+
+    if (isUploadsPath && (isDifferentHost || isMixedProtocol)) {
+      return `${requestUrl.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    // Relative URLs are already compatible.
+  }
+
+  return url;
+}
+
 
 // GET - Get all comments for a post
 export async function GET(req: NextRequest) {
   try {
+    const requestOrigin = new URL(req.url).origin;
     const { searchParams } = new URL(req.url);
     const postId = searchParams.get('postId');
     const page = parseInt(searchParams.get('page') || '1');
@@ -46,6 +67,12 @@ export async function GET(req: NextRequest) {
       {
         data: comments.map((comment: any) => ({
           ...comment,
+          user: comment.user
+            ? {
+                ...comment.user,
+                image: normalizeAssetUrlForRequest(comment.user.image, requestOrigin),
+              }
+            : comment.user,
           likeCount: comment.likes.length,
         })),
         pagination: {
@@ -69,6 +96,7 @@ export async function GET(req: NextRequest) {
 // POST - Create a comment
 export async function POST(req: NextRequest) {
   try {
+    const requestOrigin = new URL(req.url).origin;
     const session = await getServerSession();
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -146,7 +174,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(comment, { status: 201 });
+    return NextResponse.json(
+      {
+        ...comment,
+        user: comment.user
+          ? {
+              ...comment.user,
+              image: normalizeAssetUrlForRequest(comment.user.image, requestOrigin),
+            }
+          : comment.user,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating comment:', error);
     return NextResponse.json(

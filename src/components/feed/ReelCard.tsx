@@ -44,11 +44,12 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
 
     try {
       const parsedUrl = new URL(url);
-      const isLocalhostSource = parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1';
-      const isDifferentHost =
-        window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      const isUploadsPath = parsedUrl.pathname.startsWith('/uploads/');
+      const isDifferentHost = parsedUrl.host !== window.location.host;
+      const isMixedProtocol =
+        window.location.protocol === 'https:' && parsedUrl.protocol === 'http:';
 
-      if (isLocalhostSource && isDifferentHost) {
+      if (isUploadsPath && (isDifferentHost || isMixedProtocol)) {
         return `${window.location.origin}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
       }
     } catch {

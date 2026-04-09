@@ -2,9 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 
+function normalizeAssetUrlForRequest(url: unknown, requestOrigin: string): unknown {
+  if (typeof url !== 'string' || !url) return url;
+
+  try {
+    const parsed = new URL(url);
+    const requestUrl = new URL(requestOrigin);
+    const isUploadsPath = parsed.pathname.startsWith('/uploads/');
+    const isDifferentHost = parsed.host !== requestUrl.host;
+    const isMixedProtocol = requestUrl.protocol === 'https:' && parsed.protocol === 'http:';
+
+    if (isUploadsPath && (isDifferentHost || isMixedProtocol)) {
+      return `${requestUrl.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    // Relative URLs are already compatible.
+  }
+
+  return url;
+}
+
 // GET all posts with filters and pagination
 export async function GET(req: NextRequest) {
   try {
+    const requestOrigin = new URL(req.url).origin;
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -55,6 +76,22 @@ export async function GET(req: NextRequest) {
       {
         data: posts.map((post: any) => ({
           ...post,
+          mediaUrls: Array.isArray(post.mediaUrls)
+            ? post.mediaUrls.map((url: unknown) => normalizeAssetUrlForRequest(url, requestOrigin))
+            : post.mediaUrls,
+          user: post.user
+            ? {
+                ...post.user,
+                image: normalizeAssetUrlForRequest(post.user.image, requestOrigin),
+              }
+            : post.user,
+          creator: post.creator
+            ? {
+                ...post.creator,
+                avatar: normalizeAssetUrlForRequest(post.creator.avatar, requestOrigin),
+                banner: normalizeAssetUrlForRequest(post.creator.banner, requestOrigin),
+              }
+            : post.creator,
           commentCount: post._count.comments,
           likeCount: post._count.likes,
         })),
