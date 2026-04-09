@@ -16,7 +16,7 @@ const nextConfig = {
       {
         source: '/((?!_next/static|_next/image|favicon.ico).*)',
         headers: [
-          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate, no-transform' },
           { key: 'Pragma', value: 'no-cache' },
           { key: 'Expires', value: '0' },
           { key: 'X-DNS-Prefetch-Control', value: 'on' },

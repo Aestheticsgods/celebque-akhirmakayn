@@ -47,30 +47,74 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function () {
-                var reloadFlagKey = 'celebque_chunk_reload_once';
+                var attemptKey = 'celebque_chunk_reload_attempts';
+                var maxAttempts = 3;
 
-                function recoverFromChunkError(message) {
-                  var text = String(message || '');
-                  var isChunkError =
+                function parseAttempts() {
+                  var raw = sessionStorage.getItem(attemptKey) || '0';
+                  var count = parseInt(raw, 10);
+                  return Number.isFinite(count) ? count : 0;
+                }
+
+                function isAssetFailureText(text) {
+                  return (
                     text.includes('ChunkLoadError') ||
                     text.includes('Failed to load chunk') ||
-                    text.includes('/_next/static/chunks/');
+                    text.includes('/_next/static/chunks/') ||
+                    text.includes('/_next/static/media/') ||
+                    text.includes('.woff2')
+                  );
+                }
 
-                  if (!isChunkError) return;
-                  if (sessionStorage.getItem(reloadFlagKey) === '1') return;
+                async function clearClientCaches() {
+                  try {
+                    if ('serviceWorker' in navigator) {
+                      var registrations = await navigator.serviceWorker.getRegistrations();
+                      await Promise.all(registrations.map(function (registration) {
+                        return registration.unregister();
+                      }));
+                    }
+                  } catch (e) {}
 
-                  sessionStorage.setItem(reloadFlagKey, '1');
+                  try {
+                    if ('caches' in window) {
+                      var cacheKeys = await caches.keys();
+                      await Promise.all(cacheKeys.map(function (key) {
+                        return caches.delete(key);
+                      }));
+                    }
+                  } catch (e) {}
+                }
+
+                async function recoverFromAssetError(message) {
+                  var text = String(message || '');
+                  if (!isAssetFailureText(text)) return;
+
+                  var attempts = parseAttempts();
+                  if (attempts >= maxAttempts) return;
+
+                  sessionStorage.setItem(attemptKey, String(attempts + 1));
+                  await clearClientCaches();
+
                   var separator = window.location.search ? '&' : '?';
-                  window.location.replace(window.location.pathname + window.location.search + separator + 'v=' + Date.now() + window.location.hash);
+                  var bustedUrl = window.location.pathname + window.location.search + separator + 'v=' + Date.now() + window.location.hash;
+                  window.location.replace(bustedUrl);
                 }
 
                 window.addEventListener('error', function (event) {
-                  recoverFromChunkError(event && (event.message || (event.error && event.error.message)));
+                  var srcElement = event && event.target;
+                  var src = srcElement && (srcElement.src || srcElement.href || '');
+                  recoverFromAssetError(src || (event && (event.message || (event.error && event.error.message))));
                 });
 
                 window.addEventListener('unhandledrejection', function (event) {
                   var reason = event && event.reason;
-                  recoverFromChunkError(reason && (reason.message || reason));
+                  recoverFromAssetError(reason && (reason.message || reason));
+                });
+
+                window.addEventListener('load', function () {
+                  // Clear recovery state after a successful page load.
+                  sessionStorage.removeItem(attemptKey);
                 });
               })();
             `,
