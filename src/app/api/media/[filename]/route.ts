@@ -19,8 +19,13 @@ function getMimeType(filename: string): string {
   return extension ? MIME_TYPES[extension] : 'application/octet-stream';
 }
 
+function getUploadDir(): string {
+  return process.env.UPLOAD_DIR || join(process.cwd(), 'public', 'uploads', 'media');
+}
+
 async function findFilePath(filename: string): Promise<string | null> {
   const candidates = [
+    join(getUploadDir(), filename),
     join(process.cwd(), 'uploads', 'media', filename),
     join(process.cwd(), 'public', 'uploads', 'media', filename),
   ];

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // Generate unique filename
     const extension = file.name.split('.').pop();
     const filename = `${randomBytes(16).toString('hex')}.${extension}`;
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'media');
+    const uploadDir = process.env.UPLOAD_DIR || join(process.cwd(), 'public', 'uploads', 'media');
 
     // Ensure directory exists
     await mkdir(uploadDir, { recursive: true });
