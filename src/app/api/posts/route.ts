@@ -5,9 +5,20 @@ import { prisma } from '@/lib/prisma';
 function normalizeAssetUrlForRequest(url: unknown, requestOrigin: string): unknown {
   if (typeof url !== 'string' || !url) return url;
 
+  const requestUrl = new URL(requestOrigin);
+
+  const mapToApiMedia = (pathname: string, search = '', hash = '') => {
+    if (!pathname.startsWith('/uploads/media/')) return null;
+    const filename = pathname.split('/').pop();
+    if (!filename) return null;
+    return `${requestUrl.origin}/api/media/${filename}${search}${hash}`;
+  };
+
   try {
     const parsed = new URL(url);
-    const requestUrl = new URL(requestOrigin);
+    const mapped = mapToApiMedia(parsed.pathname, parsed.search, parsed.hash);
+    if (mapped) return mapped;
+
     const isUploadsPath = parsed.pathname.startsWith('/uploads/');
     const isDifferentHost = parsed.host !== requestUrl.host;
     const isMixedProtocol = requestUrl.protocol === 'https:' && parsed.protocol === 'http:';
@@ -16,7 +27,8 @@ function normalizeAssetUrlForRequest(url: unknown, requestOrigin: string): unkno
       return `${requestUrl.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
     }
   } catch {
-    // Relative URLs are already compatible.
+    const mapped = mapToApiMedia(url);
+    if (mapped) return mapped;
   }
 
   return url;

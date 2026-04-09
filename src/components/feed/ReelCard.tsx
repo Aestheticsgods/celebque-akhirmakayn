@@ -44,6 +44,14 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
 
     try {
       const parsedUrl = new URL(url);
+
+      if (parsedUrl.pathname.startsWith('/uploads/media/')) {
+        const filename = parsedUrl.pathname.split('/').pop();
+        if (filename) {
+          return `${window.location.origin}/api/media/${filename}${parsedUrl.search}${parsedUrl.hash}`;
+        }
+      }
+
       const isUploadsPath = parsedUrl.pathname.startsWith('/uploads/');
       const isDifferentHost = parsedUrl.host !== window.location.host;
       const isMixedProtocol =
@@ -53,6 +61,12 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
         return `${window.location.origin}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
       }
     } catch {
+      if (url.startsWith('/uploads/media/')) {
+        const filename = url.split('/').pop();
+        if (filename) {
+          return `${window.location.origin}/api/media/${filename}`;
+        }
+      }
       // Relative URLs and malformed URLs are returned as-is.
     }
 
