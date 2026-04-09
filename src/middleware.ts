@@ -3,12 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const host = request.headers.get('host') ?? '';
+  const forwardedHost = request.headers.get('x-forwarded-host') ?? '';
+  const host = forwardedHost || request.headers.get('host') || '';
+  const hostname = host.split(':')[0];
 
   // Avoid split CDN/origin cache behavior by forcing a single canonical host.
-  if (host.startsWith('www.')) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.hostname = host.replace(/^www\./, '');
+  if (hostname.startsWith('www.')) {
+    const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
+    const canonicalHost = hostname.replace(/^www\./, '');
+    const redirectUrl = new URL(`${proto}://${canonicalHost}${request.nextUrl.pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(redirectUrl, 308);
   }
 
