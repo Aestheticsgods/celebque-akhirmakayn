@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
           user: {
             select: {
               email: true,
+              image: true,
             },
           },
           subscribers: {
@@ -63,6 +64,7 @@ export async function GET(req: NextRequest) {
 
     const creatorsWithStats = creators.map((creator: any) => ({
       ...creator,
+      avatar: creator.avatar || creator.user?.image || undefined,
       subscriptionFee: centsToDollars(creator.subscriptionFee),
       subscriberCount: creator.subscribers.length,
       postCount: creator.posts.length,

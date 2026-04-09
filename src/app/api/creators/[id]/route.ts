@@ -18,6 +18,7 @@ export async function GET(
           select: {
             id: true,
             email: true,
+            image: true,
             isVerified: true,
           },
         },
@@ -40,6 +41,7 @@ export async function GET(
     return NextResponse.json(
       {
         ...creator,
+        avatar: creator.avatar || creator.user?.image || undefined,
         subscriptionFee: centsToDollars(creator.subscriptionFee),
         postCount: creator.posts.length,
         subscriberCount: creator.subscribers.length,

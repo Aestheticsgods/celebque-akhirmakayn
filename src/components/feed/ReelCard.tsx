@@ -243,7 +243,7 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
             className="flex items-center gap-3 mb-4 group pointer-events-auto"
           >
             <img
-              src={post.creator?.avatar || '/user.png'}
+              src={post.creator?.avatar || post.user?.image || '/user.png'}
               alt={post.creator?.displayName || 'Creator'}
               className="w-12 h-12 rounded-full object-cover bg-white ring-2 ring-primary/50 group-hover:ring-primary transition-all"
             />

@@ -42,7 +42,7 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // Update user
+    // Update user profile fields
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -52,6 +52,14 @@ export async function PUT(req: NextRequest) {
         ...(image && { image }),
       },
     });
+
+    // Keep creator avatar aligned with user image for creator discovery pages.
+    if (image) {
+      await prisma.creator.updateMany({
+        where: { userId: user.id },
+        data: { avatar: image },
+      });
+    }
 
     // Remove sensitive data
     const { passwordHash, ...safeUser } = updatedUser;
