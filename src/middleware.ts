@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get('host') ?? '';
+
+  // Avoid split CDN/origin cache behavior by forcing a single canonical host.
+  if (host.startsWith('www.')) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.hostname = host.replace(/^www\./, '');
+    return NextResponse.redirect(redirectUrl, 308);
+  }
 
   const isGetLikeRequest = request.method === 'GET' || request.method === 'HEAD';
   const secFetchMode = request.headers.get('sec-fetch-mode');
