@@ -328,7 +328,7 @@ export default function ProfileSettings() {
             transition={{ delay: 0.35 }}
             className="flex gap-3"
           >
-            <Link href="/settings" className="flex-1">
+            <Link href="/profile" className="flex-1">
               <Button variant="outline" size="lg" className="w-full">
                 Cancel
               </Button>

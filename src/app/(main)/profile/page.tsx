@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Settings, Star, Users, Heart, Grid } from 'lucide-react';
+import { Settings, Star, Users, Heart, Grid, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -33,7 +33,7 @@ interface Subscription {
 }
 
 export default function Profile() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [likesCount, setLikesCount] = useState<number>(0);
@@ -276,6 +276,19 @@ export default function Profile() {
                     </Link>
                   </div>
                 )}
+              </div>
+
+              {/* Sign Out - visible on mobile */}
+              <div className="lg:hidden mt-8">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full text-destructive hover:text-destructive"
+                  onClick={logout}
+                >
+                  <LogOut size={20} className="mr-2" />
+                  Sign Out
+                </Button>
               </div>
             </motion.div>
           </div>
