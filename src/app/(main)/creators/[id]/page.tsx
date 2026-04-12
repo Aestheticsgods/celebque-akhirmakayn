@@ -278,12 +278,6 @@ export default function CreatorProfile() {
           <div className="flex items-center gap-6 mb-8 justify-evenly">
             <div className="text-center">
               <p className="font-display font-bold text-xl text-foreground">
-                {creator?.subscriberCount?.toLocaleString() || '0'}
-              </p>
-              <p className="text-sm text-muted-foreground">Subscribers</p>
-            </div>
-            <div className="text-center">
-              <p className="font-display font-bold text-xl text-foreground">
                 {creator.postCount}
               </p>
               <p className="text-sm text-muted-foreground">Posts</p>
