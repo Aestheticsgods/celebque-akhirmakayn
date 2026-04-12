@@ -82,10 +82,7 @@ export function SuggestedCreators() {
                   </div>
                 </div>
                 
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {(creator.subscriberCount || 0).toLocaleString()} subscribers
-                  </span>
+                <div className="mt-3 flex items-center justify-end">
                   <Button
                     size="sm"
                     variant="secondary"

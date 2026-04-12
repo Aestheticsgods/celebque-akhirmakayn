@@ -166,10 +166,7 @@ export default function Discover() {
                     {creator.bio}
                   </p>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      {(creator as any).subscriberCount?.toLocaleString() || '0'} subscribers
-                    </span>
+                  <div className="flex items-center justify-end">
                     <Button size="sm" variant="gradient">
                       ${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}/month
                     </Button>
