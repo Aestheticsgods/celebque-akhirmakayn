@@ -80,6 +80,28 @@ export default function CreatorProfile() {
     }
   }, [id]);
 
+  // Check whether the logged-in user has an active subscription to this creator.
+  useEffect(() => {
+    if (!user || !id) return;
+
+    const checkSubscription = async () => {
+      try {
+        const res = await fetch('/api/subscriptions');
+        if (!res.ok) return;
+        const subscriptions = await res.json();
+        if (Array.isArray(subscriptions)) {
+          setIsSubscribed(
+            subscriptions.some((s: any) => s.creatorId === id && s.isActive)
+          );
+        }
+      } catch {
+        // ignore – subscription state defaults to false
+      }
+    };
+
+    checkSubscription();
+  }, [user, id]);
+
   const isVideoUrl = (url: string) => {
     if (!url) return false;
     return url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.webm');

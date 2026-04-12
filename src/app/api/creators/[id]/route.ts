@@ -47,6 +47,7 @@ export async function GET(
           select: { id: true },
         },
         subscribers: {
+          where: { isActive: true },
           select: { subscriberId: true },
         },
       },

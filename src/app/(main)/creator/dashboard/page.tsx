@@ -117,6 +117,24 @@ export default function CreatorDashboard() {
     }
   }, [session?.user?.email]);
 
+  // Auto-refresh dashboard data every 30 seconds so new subscribers and earnings
+  // appear without a manual page reload.
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const refreshStats = async () => {
+      try {
+        const updated = await creatorsAPI.getProfile();
+        setCreator(updated);
+      } catch {
+        // silently ignore background refresh errors
+      }
+    };
+
+    const interval = setInterval(refreshStats, 30_000);
+    return () => clearInterval(interval);
+  }, [session?.user?.email]);
+
   const handleDeletePost = async (postId: string) => {
     setIsDeleting(true);
     try {
@@ -226,7 +244,7 @@ export default function CreatorDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 lg:px-8">
+    <div className="min-h-screen bg-background py-8 pb-24 lg:pb-8 px-4 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

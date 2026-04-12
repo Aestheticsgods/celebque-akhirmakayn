@@ -34,6 +34,7 @@ function normalizeAssetUrl(url: unknown): unknown {
 // GET all posts with filters and pagination
 export async function GET(req: NextRequest) {
   try {
+    const session = await getServerSession();
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -42,7 +43,33 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const viewer = session?.user?.email
+      ? await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } })
+      : null;
+
+    const subscribedCreatorIds = viewer
+      ? (
+          await prisma.subscription.findMany({
+            where: { subscriberId: viewer.id, isActive: true },
+            select: { creatorId: true },
+          })
+        ).map((subscription: { creatorId: string }) => subscription.creatorId)
+      : [];
+
+    const subscribedCreatorIdSet = new Set(subscribedCreatorIds);
+
+    const where: any = {
+      OR: viewer
+        ? [
+            { visibility: 'PUBLIC' },
+            { visibility: 'SUBSCRIBERS_ONLY' },
+            { userId: viewer.id },
+          ]
+        : [
+            { visibility: 'PUBLIC' },
+            { visibility: 'SUBSCRIBERS_ONLY' },
+          ],
+    };
 
     // Only filter by visibility if explicitly specified
     if (visibility) {
@@ -82,11 +109,22 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        data: posts.map((post: any) => ({
+        data: posts.map((post: any) => {
+          const isOwner = viewer?.id === post.userId;
+          const hasAccess =
+            post.visibility === 'PUBLIC' ||
+            isOwner ||
+            (post.visibility === 'SUBSCRIBERS_ONLY' &&
+              subscribedCreatorIdSet.has(post.creatorId));
+
+          return {
           ...post,
-          mediaUrls: Array.isArray(post.mediaUrls)
-            ? post.mediaUrls.map((url: unknown) => normalizeAssetUrl(url))
-            : post.mediaUrls,
+          isLocked: !hasAccess,
+          mediaUrls: hasAccess
+            ? (Array.isArray(post.mediaUrls)
+              ? post.mediaUrls.map((url: unknown) => normalizeAssetUrl(url))
+              : post.mediaUrls)
+            : [],
           user: post.user
             ? {
                 ...post.user,
@@ -102,7 +140,7 @@ export async function GET(req: NextRequest) {
             : post.creator,
           commentCount: post._count.comments,
           likeCount: post._count.likes,
-        })),
+        }}),
         pagination: {
           page,
           limit,

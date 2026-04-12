@@ -70,6 +70,7 @@ export async function GET(req: NextRequest) {
             },
           },
           subscribers: {
+            where: { isActive: true },
             select: { subscriberId: true },
           },
           posts: {

@@ -9,6 +9,7 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [subscribedCreatorIds, setSubscribedCreatorIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -27,6 +28,24 @@ export default function Home() {
     };
 
     fetchPosts();
+  }, []);
+
+  useEffect(() => {
+    const fetchSubscriptions = async () => {
+      try {
+        const res = await fetch('/api/subscriptions');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setSubscribedCreatorIds(
+            new Set(data.filter((s: any) => s.isActive).map((s: any) => s.creatorId))
+          );
+        }
+      } catch {
+        // ignore — unauthenticated users or network errors
+      }
+    };
+    fetchSubscriptions();
   }, []);
 
   useEffect(() => {
@@ -57,7 +76,11 @@ export default function Home() {
         </div>
       ) : (
         posts.map((post, index) => (
-          <ReelCard key={post.id} post={post} />
+          <ReelCard
+            key={post.id}
+            post={post}
+            isSubscriber={subscribedCreatorIds.has(post.creatorId)}
+          />
         ))
       )}
     </div>

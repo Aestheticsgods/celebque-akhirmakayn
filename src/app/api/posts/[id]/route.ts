@@ -8,6 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession();
     const { id } = await params;
 
     const post = await prisma.post.findUnique({
@@ -50,6 +51,34 @@ export async function GET(
       return NextResponse.json(
         { error: 'Post not found' },
         { status: 404 }
+      );
+    }
+
+    const viewer = session?.user?.email
+      ? await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } })
+      : null;
+
+    const isOwner = viewer?.id === post.userId;
+    const isPublic = post.visibility === 'PUBLIC';
+
+    let isActiveSubscriber = false;
+    if (viewer?.id && post.visibility === 'SUBSCRIBERS_ONLY') {
+      const activeSubscription = await prisma.subscription.findUnique({
+        where: {
+          subscriberId_creatorId: {
+            subscriberId: viewer.id,
+            creatorId: post.creatorId,
+          },
+        },
+        select: { isActive: true },
+      });
+      isActiveSubscriber = Boolean(activeSubscription?.isActive);
+    }
+
+    if (!isOwner && !isPublic && !isActiveSubscriber) {
+      return NextResponse.json(
+        { error: 'You need an active subscription to view this content' },
+        { status: 403 }
       );
     }
 

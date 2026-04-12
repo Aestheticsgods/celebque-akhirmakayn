@@ -57,7 +57,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const recentTipTransactions = await prisma.transaction.findMany({
+    const [activeSubscriberCount, recentTipTransactions] = await Promise.all([
+      prisma.subscription.count({ where: { creatorId: creator.id, isActive: true } }),
+      prisma.transaction.findMany({
       where: {
         userId: creator.userId,
         type: 'CREATOR_EARNING',
@@ -66,7 +68,8 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { createdAt: 'desc' },
       take: 10,
-    });
+      }),
+    ]);
 
     const supporterIds = Array.from(
       new Set(
@@ -96,7 +99,7 @@ export async function GET(req: NextRequest) {
       {
         ...creator,
         subscriptionFee: centsToDollars(creator.subscriptionFee),
-        subscriberCount: creator.subscribers.length,
+        subscriberCount: activeSubscriberCount,
         postCount: creator.posts.length,
         recentTips: recentTipTransactions.map((transaction: (typeof recentTipTransactions)[number]) => {
           const supporter = transaction.relatedUserId
