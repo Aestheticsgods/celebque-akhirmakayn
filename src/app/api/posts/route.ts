@@ -120,11 +120,9 @@ export async function GET(req: NextRequest) {
           return {
           ...post,
           isLocked: !hasAccess,
-          mediaUrls: hasAccess
-            ? (Array.isArray(post.mediaUrls)
-              ? post.mediaUrls.map((url: unknown) => normalizeAssetUrl(url))
-              : post.mediaUrls)
-            : [],
+          mediaUrls: Array.isArray(post.mediaUrls)
+            ? post.mediaUrls.map((url: unknown) => normalizeAssetUrl(url))
+            : post.mediaUrls,
           user: post.user
             ? {
                 ...post.user,

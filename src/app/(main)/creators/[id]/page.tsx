@@ -333,7 +333,7 @@ export default function CreatorProfile() {
 
                   {/* Lock indicator for subscriber-only content */}
                   {post.visibility === 'SUBSCRIBERS_ONLY' && !isSubscribed && (
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                    <div className="absolute inset-0 bg-background/40 backdrop-blur-xl flex items-center justify-center">
                       <div className="text-center">
                         <Lock size={32} className="text-muted-foreground mx-auto mb-2" />
                         <p className="text-sm text-muted-foreground">Reserved for subscribers</p>

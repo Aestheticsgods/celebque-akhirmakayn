@@ -256,7 +256,7 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
 
         {/* Locked Content Overlay */}
         {(post.isLocked || post.visibility === 'SUBSCRIBERS_ONLY') && !isOwner && !isSubscriber && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/40 backdrop-blur-xl">
             <div className="text-center p-6">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                 <Lock size={32} className="text-muted-foreground" />
