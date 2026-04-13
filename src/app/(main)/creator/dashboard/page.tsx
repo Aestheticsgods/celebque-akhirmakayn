@@ -489,7 +489,10 @@ export default function CreatorDashboard() {
                   className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
                   onClick={() => handleViewPost(post.id)}
                 >
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                  <div
+                    className="relative rounded-lg overflow-hidden"
+                    style={{ width: '100%', maxWidth: 96, aspectRatio: '1 / 1', minWidth: 64 }}
+                  >
                     {isVideoUrl(post.mediaUrls?.[0]) ? (
                       <>
                         <video
@@ -498,8 +501,9 @@ export default function CreatorDashboard() {
                           preload="metadata"
                           muted
                           playsInline
+                          style={{ display: 'block', width: '100%', height: '100%', background: '#111' }}
                         />
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
                           <Play size={20} className="text-white fill-white" />
                         </div>
                       </>
@@ -508,6 +512,7 @@ export default function CreatorDashboard() {
                         src={post.mediaUrls?.[0]}
                         alt={post.caption}
                         className="w-full h-full object-cover"
+                        style={{ display: 'block', width: '100%', height: '100%', background: '#111' }}
                       />
                     )}
                   </div>
