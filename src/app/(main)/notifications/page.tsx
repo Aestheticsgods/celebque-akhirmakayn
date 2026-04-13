@@ -31,8 +31,14 @@ export default function Notifications() {
         const response = await fetch('/api/notifications');
         if (!response.ok) throw new Error('Failed to fetch notifications');
         const data = await response.json();
-        const notificationsArray = Array.isArray(data) ? data : (data.notifications && Array.isArray(data.notifications) ? data.notifications : []);
+        const notificationsArray = Array.isArray(data) ? data : (data.data && Array.isArray(data.data) ? data.data : []);
         setNotifications(notificationsArray);
+
+        // Mark all unread notifications as read
+        const unread = notificationsArray.filter((n: Notification) => !n.isRead);
+        if (unread.length > 0) {
+          await fetch('/api/notifications/mark-all-read', { method: 'POST' }).catch(() => {});
+        }
       } catch (error) {
         console.error('Error fetching notifications:', error);
         setNotifications([]);

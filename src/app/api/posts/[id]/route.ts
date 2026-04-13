@@ -2,6 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 
+function normalizeAssetUrl(url: unknown): unknown {
+  if (typeof url !== 'string' || !url) return url;
+  if (url.startsWith('/api/media/')) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith('/uploads/media/')) {
+      const filename = parsed.pathname.split('/').pop();
+      if (filename) return `/api/media/${filename}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    if (url.startsWith('/uploads/media/')) {
+      const filename = url.split('/').pop();
+      if (filename) return `/api/media/${filename}`;
+    }
+  }
+  if (!url.startsWith('/') && !url.startsWith('http') && /\.(png|jpg|jpeg|gif|webp|mp4|webm)$/i.test(url)) {
+    return `/api/media/${url}`;
+  }
+  return url;
+}
+
 // GET single post by ID
 export async function GET(
   req: NextRequest,
@@ -91,6 +112,19 @@ export async function GET(
     return NextResponse.json(
       {
         ...post,
+        mediaUrls: Array.isArray(post.mediaUrls)
+          ? post.mediaUrls.map((url: unknown) => normalizeAssetUrl(url))
+          : post.mediaUrls,
+        user: post.user
+          ? { ...post.user, image: normalizeAssetUrl(post.user.image) }
+          : post.user,
+        creator: post.creator
+          ? {
+              ...post.creator,
+              avatar: normalizeAssetUrl(post.creator.avatar),
+              banner: normalizeAssetUrl(post.creator.banner),
+            }
+          : post.creator,
         commentCount: post._count.comments,
         likeCount: post._count.likes,
       },

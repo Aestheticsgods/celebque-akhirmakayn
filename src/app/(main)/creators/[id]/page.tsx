@@ -286,11 +286,17 @@ export default function CreatorProfile() {
 
           {/* Content Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-4">
-            {posts.map((post, index) => (
-              <Link
+            {posts.map((post, index) => {
+              const isLocked = post.visibility === 'SUBSCRIBERS_ONLY' && !isSubscribed;
+              const Wrapper = isLocked ? 'div' : Link;
+              const wrapperProps = isLocked
+                ? { className: 'block cursor-pointer' }
+                : { href: `/creator/posts/${post.id}` as any, className: 'block' };
+
+              return (
+              <Wrapper
                 key={post.id}
-                href={`/creator/posts/${post.id}`}
-                className="block"
+                {...wrapperProps}
               >
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -301,9 +307,11 @@ export default function CreatorProfile() {
                   {isVideoUrl(post.mediaUrls?.[0]) ? (
                     <>
                       <video
-                        src={post.mediaUrls[0]}
+                        src={`${post.mediaUrls[0]}#t=0.001`}
                         className="w-full h-full object-cover"
                         preload="metadata"
+                        muted
+                        playsInline
                       />
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
                         <Play size={48} className="text-white fill-white" />
@@ -326,17 +334,28 @@ export default function CreatorProfile() {
                   </div>
 
                   {/* Lock indicator for subscriber-only content */}
-                  {post.visibility === 'SUBSCRIBERS_ONLY' && !isSubscribed && (
+                  {isLocked && (
                     <div className="absolute inset-0 bg-background/40 backdrop-blur-xl flex items-center justify-center">
-                      <div className="text-center">
+                      <div className="text-center p-4">
                         <Lock size={32} className="text-muted-foreground mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">Reserved for subscribers</p>
+                        <p className="text-sm text-muted-foreground mb-3">Reserved for subscribers</p>
+                        <Button
+                          className="gradient-primary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSubscribe();
+                          }}
+                        >
+                          Subscribe - ${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}/mo
+                        </Button>
                       </div>
                     </div>
                   )}
                 </motion.div>
-              </Link>
-            ))}
+              </Wrapper>
+              );
+            })}
           </div>
 
           {posts.length === 0 && (

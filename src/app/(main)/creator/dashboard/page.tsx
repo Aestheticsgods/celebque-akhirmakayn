@@ -493,9 +493,11 @@ export default function CreatorDashboard() {
                     {isVideoUrl(post.mediaUrls?.[0]) ? (
                       <>
                         <video
-                          src={post.mediaUrls[0]}
+                          src={`${post.mediaUrls[0]}#t=0.001`}
                           className="w-full h-full object-cover"
                           preload="metadata"
+                          muted
+                          playsInline
                         />
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                           <Play size={20} className="text-white fill-white" />
