@@ -288,73 +288,102 @@ export default function CreatorProfile() {
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-4">
             {posts.map((post, index) => {
               const isLocked = post.visibility === 'SUBSCRIBERS_ONLY' && !isSubscribed;
-              const Wrapper = isLocked ? 'div' : Link;
-              const wrapperProps = isLocked
-                ? { className: 'block cursor-pointer' }
-                : { href: `/creator/posts/${post.id}` as any, className: 'block' };
-
-              return (
-              <Wrapper
-                key={post.id}
-                {...wrapperProps}
-              >
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer"
-                >
-                  {isVideoUrl(post.mediaUrls?.[0]) ? (
-                    <>
-                      <video
-                        src={`${post.mediaUrls[0]}#t=0.001`}
-                        className="w-full h-full object-cover"
-                        preload="metadata"
-                        muted
-                        playsInline
-                      />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-                        <Play size={48} className="text-white fill-white" />
+              if (isLocked) {
+                return (
+                  <div className="block cursor-pointer" key={post.id}>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer"
+                    >
+                      {isVideoUrl(post.mediaUrls?.[0]) ? (
+                        <>
+                          <video
+                            src={`${post.mediaUrls[0]}#t=0.001`}
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                            muted
+                            playsInline
+                          />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
+                            <Play size={48} className="text-white fill-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <img
+                          src={post.mediaUrls?.[0] || 'https://via.placeholder.com/400x400'}
+                          alt={post.caption}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      )}
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                        <div className="flex items-center gap-1 text-foreground">
+                          <Heart size={20} className="fill-current" />
+                          <span className="font-medium">{post.likeCount}</span>
+                        </div>
                       </div>
-                    </>
-                  ) : (
-                    <img
-                      src={post.mediaUrls?.[0] || 'https://via.placeholder.com/400x400'}
-                      alt={post.caption}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  )}
-                  
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <div className="flex items-center gap-1 text-foreground">
-                      <Heart size={20} className="fill-current" />
-                      <span className="font-medium">{post.likeCount}</span>
-                    </div>
+                      {/* Lock indicator for subscriber-only content */}
+                      <div className="absolute inset-0 bg-background/40 backdrop-blur-xl flex items-center justify-center">
+                        <div className="text-center p-4">
+                          <Lock size={32} className="text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground mb-3">Reserved for subscribers</p>
+                          <Button
+                            className="gradient-primary"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSubscribe();
+                            }}
+                          >
+                            Subscribe - ${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}/mo
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
                   </div>
-
-                  {/* Lock indicator for subscriber-only content */}
-                  {isLocked && (
-                    <div className="absolute inset-0 bg-background/40 backdrop-blur-xl flex items-center justify-center">
-                      <div className="text-center p-4">
-                        <Lock size={32} className="text-muted-foreground mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground mb-3">Reserved for subscribers</p>
-                        <Button
-                          className="gradient-primary"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSubscribe();
-                          }}
-                        >
-                          Subscribe - ${GLOBAL_SUBSCRIPTION_FEE_USD.toFixed(2)}/mo
-                        </Button>
+                );
+              } else {
+                return (
+                  <Link href={`/creator/posts/${post.id}`} className="block" key={post.id}>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer"
+                    >
+                      {isVideoUrl(post.mediaUrls?.[0]) ? (
+                        <>
+                          <video
+                            src={`${post.mediaUrls[0]}#t=0.001`}
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                            muted
+                            playsInline
+                          />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
+                            <Play size={48} className="text-white fill-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <img
+                          src={post.mediaUrls?.[0] || 'https://via.placeholder.com/400x400'}
+                          alt={post.caption}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      )}
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                        <div className="flex items-center gap-1 text-foreground">
+                          <Heart size={20} className="fill-current" />
+                          <span className="font-medium">{post.likeCount}</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </motion.div>
-              </Wrapper>
-              );
+                    </motion.div>
+                  </Link>
+                );
+              }
             })}
           </div>
 
