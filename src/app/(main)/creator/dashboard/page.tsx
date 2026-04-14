@@ -1,6 +1,50 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, FC } from 'react';
+// Composant enfant pour la vidéo avec bouton Play
+interface DashboardVideoPlayerProps {
+  src: string;
+  poster?: string;
+}
+
+const DashboardVideoPlayer: FC<DashboardVideoPlayerProps> = ({ src, poster }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handlePlay = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  return (
+    <div className="relative w-full h-full" style={{ minHeight: 96 }}>
+      <video
+        ref={videoRef}
+        src={src}
+        className="w-full h-full object-cover"
+        preload="metadata"
+        muted
+        playsInline
+        poster={poster}
+        controls={isPlaying}
+        style={{ display: 'block', width: '100%', height: '100%', minHeight: 96, background: '#111' }}
+      />
+      {!isPlaying && (
+        <button
+          type="button"
+          onClick={handlePlay}
+          className="absolute inset-0 flex items-center justify-center bg-black/30"
+          style={{ width: '100%', height: '100%' }}
+        >
+          <Play size={40} className="text-white fill-white" />
+        </button>
+      )}
+    </div>
+  );
+};
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -494,44 +538,7 @@ export default function CreatorDashboard() {
                     style={{ width: '100%', maxWidth: 96, aspectRatio: '1 / 1', minWidth: 64 }}
                   >
                     {isVideoUrl(post.mediaUrls?.[0]) ? (
-                      (() => {
-                        const [isPlaying, setIsPlaying] = useState(false);
-                        const videoRef = useRef<HTMLVideoElement>(null);
-
-                        const handlePlay = (e: React.MouseEvent<HTMLButtonElement>) => {
-                          e.stopPropagation();
-                          if (videoRef.current) {
-                            videoRef.current.play();
-                            setIsPlaying(true);
-                          }
-                        };
-
-                        return (
-                          <div className="relative w-full h-full" style={{ minHeight: 96 }}>
-                            <video
-                              ref={videoRef}
-                              src={`${post.mediaUrls[0]}#t=0.001`}
-                              className="w-full h-full object-cover"
-                              preload="metadata"
-                              muted
-                              playsInline
-                              poster="/user.png"
-                              controls={isPlaying}
-                              style={{ display: 'block', width: '100%', height: '100%', minHeight: 96, background: '#111' }}
-                            />
-                            {!isPlaying && (
-                              <button
-                                type="button"
-                                onClick={handlePlay}
-                                className="absolute inset-0 flex items-center justify-center bg-black/30"
-                                style={{ width: '100%', height: '100%' }}
-                              >
-                                <Play size={40} className="text-white fill-white" />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })()
+                      <DashboardVideoPlayer src={`${post.mediaUrls[0]}#t=0.001`} poster="/user.png" />
                     ) : (
                       <img
                         src={post.mediaUrls?.[0]}
