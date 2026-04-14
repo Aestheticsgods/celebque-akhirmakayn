@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -494,20 +494,44 @@ export default function CreatorDashboard() {
                     style={{ width: '100%', maxWidth: 96, aspectRatio: '1 / 1', minWidth: 64 }}
                   >
                     {isVideoUrl(post.mediaUrls?.[0]) ? (
-                      <>
-                        <video
-                          src={`${post.mediaUrls[0]}#t=0.001`}
-                          className="w-full h-full object-cover"
-                          preload="metadata"
-                          muted
-                          playsInline
-                          poster="/user.png"
-                          style={{ display: 'block', width: '100%', height: '100%', minHeight: 96, background: '#111' }}
-                        />
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
-                          <Play size={20} className="text-white fill-white" />
-                        </div>
-                      </>
+                      (() => {
+                        const [isPlaying, setIsPlaying] = useState(false);
+                        const videoRef = useRef(null);
+
+                        const handlePlay = (e) => {
+                          e.stopPropagation();
+                          if (videoRef.current) {
+                            videoRef.current.play();
+                            setIsPlaying(true);
+                          }
+                        };
+
+                        return (
+                          <div className="relative w-full h-full" style={{ minHeight: 96 }}>
+                            <video
+                              ref={videoRef}
+                              src={`${post.mediaUrls[0]}#t=0.001`}
+                              className="w-full h-full object-cover"
+                              preload="metadata"
+                              muted
+                              playsInline
+                              poster="/user.png"
+                              controls={isPlaying}
+                              style={{ display: 'block', width: '100%', height: '100%', minHeight: 96, background: '#111' }}
+                            />
+                            {!isPlaying && (
+                              <button
+                                type="button"
+                                onClick={handlePlay}
+                                className="absolute inset-0 flex items-center justify-center bg-black/30"
+                                style={{ width: '100%', height: '100%' }}
+                              >
+                                <Play size={40} className="text-white fill-white" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()
                     ) : (
                       <img
                         src={post.mediaUrls?.[0]}
