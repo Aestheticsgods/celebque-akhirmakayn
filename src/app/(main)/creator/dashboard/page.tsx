@@ -496,9 +496,9 @@ export default function CreatorDashboard() {
                     {isVideoUrl(post.mediaUrls?.[0]) ? (
                       (() => {
                         const [isPlaying, setIsPlaying] = useState(false);
-                        const videoRef = useRef(null);
+                        const videoRef = useRef<HTMLVideoElement>(null);
 
-                        const handlePlay = (e) => {
+                        const handlePlay = (e: React.MouseEvent<HTMLButtonElement>) => {
                           e.stopPropagation();
                           if (videoRef.current) {
                             videoRef.current.play();
