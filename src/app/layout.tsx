@@ -120,6 +120,17 @@ export default function RootLayout({
             `,
           }}
         />
+          {/* Favicons */}
+          <link rel="icon" type="image/png" sizes="16x16" href="/favicon_16.png" />
+          <link rel="icon" type="image/png" sizes="32x32" href="/favicon_32.png" />
+          <link rel="icon" type="image/png" sizes="48x48" href="/favicon_48.png" />
+          {/* PWA Icons */}
+          <link rel="icon" type="image/png" sizes="192x192" href="/icon_192.png" />
+          <link rel="icon" type="image/png" sizes="512x512" href="/icon_512.png" />
+          {/* Adaptive Icon */}
+          <link rel="icon" type="image/png" sizes="432x432" href="/adaptive_432.png" />
+          {/* Splash Icon */}
+          <link rel="apple-touch-startup-image" href="/splash_1024.png" />
       </head>
       <body className={`${inter.variable} ${outfit.variable} font-sans antialiased`}>
         <SessionProvider>

@@ -501,7 +501,8 @@ export default function CreatorDashboard() {
                           preload="metadata"
                           muted
                           playsInline
-                          style={{ display: 'block', width: '100%', height: '100%', background: '#111' }}
+                          poster="/user.png"
+                          style={{ display: 'block', width: '100%', height: '100%', minHeight: 96, background: '#111' }}
                         />
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
                           <Play size={20} className="text-white fill-white" />
