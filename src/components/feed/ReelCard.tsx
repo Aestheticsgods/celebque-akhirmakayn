@@ -217,6 +217,7 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
                 autoPlay
                 muted
                 loop
+                playsInline
                 onClick={handleVideoClick}
               />
               {/* Pause Icon Overlay */}
