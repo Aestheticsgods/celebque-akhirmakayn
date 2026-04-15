@@ -77,7 +77,14 @@ export async function GET(req: NextRequest) {
     }
 
     if (creatorId) {
-      where.creatorId = creatorId;
+      // Si le viewer est le créateur, ne filtre QUE par creatorId (tous les posts)
+      if (viewer && viewer.id === creatorId) {
+        where.creatorId = creatorId;
+        // Ne filtre PAS par visibility
+        delete where.OR;
+      } else {
+        where.creatorId = creatorId;
+      }
     }
 
     const [posts, total] = await Promise.all([
