@@ -58,6 +58,9 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
     // Si c'est une URL absolue, on la garde (cas rare, CDN)
     if (url.startsWith('http')) return url;
 
+    // Si c'est une image statique du dossier public (ex: /user.png)
+    if (url.startsWith('/user.png')) return url;
+
     // Sinon, fallback vide (évite les chemins relatifs foireux)
     return '';
   };
