@@ -41,31 +41,25 @@ export function ReelCard({ post, isActive = false, isOwner = false, isSubscriber
   const resolveAssetUrl = (url?: string | null): string => {
     if (!url) return '';
 
-    // Already normalized
+    // Si déjà normalisé
     if (url.startsWith('/api/media/')) return url;
 
-    // Remap legacy static-upload paths to the API media route.
+    // Si c'est juste un nom de fichier (sans slash ni http)
+    if (!url.startsWith('/') && !url.startsWith('http')) {
+      return `/api/media/${url}`;
+    }
+
+    // Si c'est un chemin legacy
     if (url.startsWith('/uploads/media/')) {
       const filename = url.split('/').pop();
       if (filename) return `/api/media/${filename}`;
     }
 
-    try {
-      const parsedUrl = new URL(url);
-      if (parsedUrl.pathname.startsWith('/uploads/media/')) {
-        const filename = parsedUrl.pathname.split('/').pop();
-        if (filename) return `/api/media/${filename}${parsedUrl.search}${parsedUrl.hash}`;
-      }
-    } catch {
-      // Relative or malformed URL — return as-is.
-    }
+    // Si c'est une URL absolue, on la garde (cas rare, CDN)
+    if (url.startsWith('http')) return url;
 
-    // Bare filename (e.g. "abc123.png")
-    if (!url.startsWith('/') && !url.startsWith('http') && /\.(png|jpg|jpeg|gif|webp|mp4|webm)$/i.test(url)) {
-      return `/api/media/${url}`;
-    }
-
-    return url;
+    // Sinon, fallback vide (évite les chemins relatifs foireux)
+    return '';
   };
 
   const primaryMediaUrl = resolveAssetUrl(post.mediaUrls?.[0]);

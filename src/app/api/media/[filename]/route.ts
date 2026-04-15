@@ -65,6 +65,9 @@ export async function GET(
       headers: {
         'Content-Type': getMimeType(filename),
         'Cache-Control': 'public, max-age=31536000, immutable',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Range',
       },
     });
   } catch (error) {
