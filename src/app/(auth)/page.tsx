@@ -67,8 +67,12 @@ export default function Login() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4 glow-primary">
-            <span className="text-primary-foreground font-display font-bold text-3xl">C</span>
+          <div className="w-28 h-28 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4 glow-primary overflow-hidden">
+            <img
+              src="/adaptive_432.png"
+              alt="Celebque Logo"
+              className="w-24 h-24 object-contain"
+            />
           </div>
           <h1 className="font-display font-bold text-3xl text-foreground">Celebque</h1>
           <p className="text-muted-foreground mt-2">Sign in to your account</p>
