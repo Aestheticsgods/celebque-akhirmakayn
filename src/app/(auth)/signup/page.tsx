@@ -79,8 +79,12 @@ export default function Signup() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4 glow-primary">
-            <span className="text-primary-foreground font-display font-bold text-3xl">C</span>
+          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4 glow-primary overflow-hidden">
+            <img
+              src="/adaptive_432.png"
+              alt="Celebque Logo"
+              className="w-14 h-14 object-contain"
+            />
           </div>
           <h1 className="font-display font-bold text-3xl text-foreground">Join Celebque</h1>
           <p className="text-muted-foreground mt-2">Create your account for free</p>
