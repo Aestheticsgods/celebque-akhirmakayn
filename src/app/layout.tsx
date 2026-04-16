@@ -29,6 +29,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Organization Structured Data for Google Logo */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "url": "https://www.celebque.com",
+              "logo": "https://www.celebque.com/adaptive_432.png"
+            })
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
