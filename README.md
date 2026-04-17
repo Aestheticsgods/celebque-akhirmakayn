@@ -1,5 +1,7 @@
 # Celebque - Creator Platform
 
+**Author:** Houssam Hanzazi
+
 A modern content creation platform built with Next.js, where creators can share content and users can discover and subscribe to their favorite creators.
 
 ## Prerequisites
