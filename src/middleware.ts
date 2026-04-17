@@ -1,9 +1,6 @@
 import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 
-const maintenanceFile = path.resolve(process.cwd(), 'maintenance.json');
 const ADMIN_EMAIL = 'houssamhanzaaiinfo@gmail.com'; // Change to your admin email
 
 function nextNoStore() {
@@ -13,7 +10,6 @@ function nextNoStore() {
   response.headers.set('Surrogate-Control', 'no-store');
   response.headers.set('Pragma', 'no-cache');
   response.headers.set('Expires', '0');
-  // Tell CDN/proxy that RSC vs HTML are different responses for the same URL
   response.headers.set('Vary', 'RSC, Next-Router-State-Tree, Next-Router-Prefetch, Accept');
   response.headers.set('x-middleware-cache', 'no-cache');
   return response;
