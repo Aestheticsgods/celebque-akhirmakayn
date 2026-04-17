@@ -78,8 +78,8 @@ export function AppSidebar() {
               exit={{ opacity: 0 }}
               className="flex items-center gap-2"
             >
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-display font-bold text-lg">C</span>
+              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center overflow-hidden">
+                <img src="/adaptive_432.png" alt="Celebque Logo" className="w-full h-full object-cover" />
               </div>
               <span className="font-display font-semibold text-xl text-foreground">Celebque</span>
             </motion.div>
