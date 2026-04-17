@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { access, readFile } from 'fs/promises';
+import { access, readFile, stat } from 'fs/promises';
+import { createReadStream } from 'fs';
 import { constants } from 'fs';
 import { join } from 'path';
 
@@ -43,7 +44,7 @@ async function findFilePath(filename: string): Promise<string | null> {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ filename: string }> }
 ) {
   try {
@@ -58,18 +59,57 @@ export async function GET(
       return NextResponse.json({ error: 'Media not found' }, { status: 404 });
     }
 
-    const fileBuffer = await readFile(filePath);
+    const fileStat = await stat(filePath);
+    const fileSize = fileStat.size;
+    const range = req.headers.get('range');
+    const mimeType = getMimeType(filename);
 
-    return new NextResponse(fileBuffer, {
-      status: 200,
-      headers: {
-        'Content-Type': getMimeType(filename),
+    if (range) {
+      // Parse Range header, e.g. "bytes=0-1023"
+      const match = range.match(/bytes=(\d*)-(\d*)/);
+      if (!match) {
+        return new NextResponse(null, { status: 416 });
+      }
+      let start = parseInt(match[1], 10);
+      let end = match[2] ? parseInt(match[2], 10) : fileSize - 1;
+      if (isNaN(start)) start = 0;
+      if (isNaN(end) || end >= fileSize) end = fileSize - 1;
+      if (start > end || start >= fileSize) {
+        return new NextResponse(null, { status: 416 });
+      }
+
+      const chunkSize = end - start + 1;
+      const stream = createReadStream(filePath, { start, end });
+      const headers = {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize.toString(),
+        'Content-Type': mimeType,
         'Cache-Control': 'public, max-age=31536000, immutable',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Range',
-      },
-    });
+      };
+      // @ts-ignore
+      return new NextResponse(stream as any, {
+        status: 206,
+        headers,
+      });
+    } else {
+      const fileBuffer = await readFile(filePath);
+      return new NextResponse(fileBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': mimeType,
+          'Content-Length': fileSize.toString(),
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Range',
+        },
+      });
+    }
   } catch (error) {
     console.error('Error serving media file:', error);
     return NextResponse.json({ error: 'Failed to serve media file' }, { status: 500 });
