@@ -1,5 +1,10 @@
 import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+const maintenanceFile = path.resolve(process.cwd(), 'maintenance.json');
+const ADMIN_EMAIL = 'houssamhanzaaiinfo@gmail.com'; // Change to your admin email
 
 function nextNoStore() {
   const response = NextResponse.next();
