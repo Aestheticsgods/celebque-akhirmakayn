@@ -16,17 +16,20 @@ function nextNoStore() {
 }
 
 export async function middleware(request: NextRequest) {
+  // Maintenance mode check (except for admin and maintenance toggle page)
   const { pathname } = request.nextUrl;
-  const forwardedHost = request.headers.get('x-forwarded-host') ?? '';
-  const host = forwardedHost || request.headers.get('host') || '';
-  const hostname = host.split(':')[0];
-
-  // Avoid split CDN/origin cache behavior by forcing a single canonical host.
-  if (hostname.startsWith('www.')) {
-    const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
-    const canonicalHost = hostname.replace(/^www\./, '');
-    const redirectUrl = new URL(`${proto}://${canonicalHost}${request.nextUrl.pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(redirectUrl, 308);
+  if (!pathname.startsWith('/api') && pathname !== '/ana/hua/mulchi') {
+    try {
+      const baseUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+      const res = await fetch(`${baseUrl}/api/maintenance`, { next: { revalidate: 0 } });
+      const { maintenance } = await res.json();
+      if (maintenance) {
+        const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+        if (!token || token.email !== ADMIN_EMAIL) {
+          return NextResponse.rewrite(new URL('/maintenance-page', request.url));
+        }
+      }
+    } catch (e) {}
   }
 
   const isGetLikeRequest = request.method === 'GET' || request.method === 'HEAD';

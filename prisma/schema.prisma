@@ -290,6 +290,12 @@ model Notification {
   @@index([userId, isRead])
 }
 
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
+
 // =====================================================
 // ENUMS
 // =====================================================
