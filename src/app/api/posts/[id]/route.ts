@@ -1,0 +1,265 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { prisma } from '@/lib/prisma';
+
+function normalizeAssetUrl(url: unknown): unknown {
+  if (typeof url !== 'string' || !url) return url;
+  if (url.startsWith('/api/media/')) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith('/uploads/media/')) {
+      const filename = parsed.pathname.split('/').pop();
+      if (filename) return `/api/media/${filename}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    if (url.startsWith('/uploads/media/')) {
+      const filename = url.split('/').pop();
+      if (filename) return `/api/media/${filename}`;
+    }
+  }
+  if (!url.startsWith('/') && !url.startsWith('http') && /\.(png|jpg|jpeg|gif|webp|mp4|webm)$/i.test(url)) {
+    return `/api/media/${url}`;
+  }
+  return url;
+}
+
+// GET single post by ID
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    const { id } = await params;
+
+    const post = await prisma.post.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        creator: true,
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+        likes: {
+          select: { userId: true },
+        },
+        _count: {
+          select: {
+            comments: true,
+            likes: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      return NextResponse.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
+    const viewer = session?.user?.email
+      ? await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } })
+      : null;
+
+    const isOwner = viewer?.id === post.userId;
+    const isPublic = post.visibility === 'PUBLIC';
+
+    let isActiveSubscriber = false;
+    if (viewer?.id && post.visibility === 'SUBSCRIBERS_ONLY') {
+      const activeSubscription = await prisma.subscription.findUnique({
+        where: {
+          subscriberId_creatorId: {
+            subscriberId: viewer.id,
+            creatorId: post.creatorId,
+          },
+        },
+        select: { isActive: true },
+      });
+      isActiveSubscriber = Boolean(activeSubscription?.isActive);
+    }
+
+    if (!isOwner && !isPublic && !isActiveSubscriber) {
+      return NextResponse.json(
+        { error: 'You need an active subscription to view this content' },
+        { status: 403 }
+      );
+    }
+
+    // Increment view count
+    await prisma.post.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+    });
+
+    return NextResponse.json(
+      {
+        ...post,
+        mediaUrls: Array.isArray(post.mediaUrls)
+          ? post.mediaUrls.map((url: unknown) => normalizeAssetUrl(url))
+          : post.mediaUrls,
+        user: post.user
+          ? { ...post.user, image: normalizeAssetUrl(post.user.image) }
+          : post.user,
+        creator: post.creator
+          ? {
+              ...post.creator,
+              avatar: normalizeAssetUrl(post.creator.avatar),
+              banner: normalizeAssetUrl(post.creator.banner),
+            }
+          : post.creator,
+        commentCount: post._count.comments,
+        likeCount: post._count.likes,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error fetching post:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch post' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Update post
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+    const body = await req.json();
+
+    const post = await prisma.post.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+
+    if (!post) {
+      return NextResponse.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify ownership
+    if (post.user.email !== session.user.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    const { caption, content, visibility, isLocked, isPinned, tags } = body;
+
+    const updatedPost = await prisma.post.update({
+      where: { id },
+      data: {
+        ...(caption !== undefined && { caption }),
+        ...(content !== undefined && { content }),
+        ...(visibility && { visibility }),
+        ...(isLocked !== undefined && { isLocked }),
+        ...(isPinned !== undefined && { isPinned }),
+        ...(tags && { tags }),
+      },
+      include: {
+        creator: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(updatedPost, { status: 200 });
+  } catch (error) {
+    console.error('Error updating post:', error);
+    return NextResponse.json(
+      { error: 'Failed to update post' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete post
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+
+    const post = await prisma.post.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+
+    if (!post) {
+      return NextResponse.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify ownership
+    if (post.user.email !== session.user.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    await prisma.post.delete({
+      where: { id },
+    });
+
+    return NextResponse.json(
+      { message: 'Post deleted successfully' },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete post' },
+      { status: 500 }
+    );
+  }
+}

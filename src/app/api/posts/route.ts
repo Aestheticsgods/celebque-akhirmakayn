@@ -1,0 +1,252 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { prisma } from '@/lib/prisma';
+
+function normalizeAssetUrl(url: unknown): unknown {
+  if (typeof url !== 'string' || !url) return url;
+
+  // Already normalized
+  if (url.startsWith('/api/media/')) return url;
+
+  try {
+    // Handle absolute URLs that contain an /uploads/media/ path
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith('/uploads/media/')) {
+      const filename = parsed.pathname.split('/').pop();
+      if (filename) return `/api/media/${filename}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    // Relative URL
+    if (url.startsWith('/uploads/media/')) {
+      const filename = url.split('/').pop();
+      if (filename) return `/api/media/${filename}`;
+    }
+  }
+
+  // Bare filename (e.g. "abc123.png") — no leading slash, no protocol
+  if (!url.startsWith('/') && !url.startsWith('http') && /\.(png|jpg|jpeg|gif|webp|mp4|webm)$/i.test(url)) {
+    return `/api/media/${url}`;
+  }
+
+  return url;
+}
+
+// GET all posts with filters and pagination
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession();
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const creatorId = searchParams.get('creatorId');
+    const visibility = searchParams.get('visibility');
+
+    const skip = (page - 1) * limit;
+
+    const viewer = session?.user?.email
+      ? await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } })
+      : null;
+
+    const subscribedCreatorIds = viewer
+      ? (
+          await prisma.subscription.findMany({
+            where: { subscriberId: viewer.id, isActive: true },
+            select: { creatorId: true },
+          })
+        ).map((subscription: { creatorId: string }) => subscription.creatorId)
+      : [];
+
+    const subscribedCreatorIdSet = new Set(subscribedCreatorIds);
+
+    const where: any = {
+      OR: viewer
+        ? [
+            { visibility: 'PUBLIC' },
+            { visibility: 'SUBSCRIBERS_ONLY' },
+            { userId: viewer.id },
+          ]
+        : [
+            { visibility: 'PUBLIC' },
+            { visibility: 'SUBSCRIBERS_ONLY' },
+          ],
+    };
+
+    // Only filter by visibility if explicitly specified
+    if (visibility) {
+      where.visibility = visibility;
+    }
+
+    if (creatorId) {
+      // Si le viewer est le créateur, ne filtre QUE par creatorId (tous les posts)
+      if (viewer && viewer.id === creatorId) {
+        where.creatorId = creatorId;
+        // Ne filtre PAS par visibility
+        delete where.OR;
+      } else {
+        where.creatorId = creatorId;
+      }
+    }
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          creator: true,
+          _count: {
+            select: {
+              comments: true,
+              likes: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.post.count({ where }),
+    ]);
+
+    return NextResponse.json(
+      {
+        data: posts.map((post: any) => {
+          const isOwner = viewer?.id === post.userId;
+          const hasAccess =
+            post.visibility === 'PUBLIC' ||
+            isOwner ||
+            (post.visibility === 'SUBSCRIBERS_ONLY' &&
+              subscribedCreatorIdSet.has(post.creatorId));
+
+          return {
+          ...post,
+          isLocked: !hasAccess,
+          mediaUrls: Array.isArray(post.mediaUrls)
+            ? post.mediaUrls.map((url: unknown) => normalizeAssetUrl(url))
+            : post.mediaUrls,
+          user: post.user
+            ? {
+                ...post.user,
+                image: normalizeAssetUrl(post.user.image),
+              }
+            : post.user,
+          creator: post.creator
+            ? {
+                ...post.creator,
+                avatar: normalizeAssetUrl(post.creator.avatar),
+                banner: normalizeAssetUrl(post.creator.banner),
+              }
+            : post.creator,
+          commentCount: post._count.comments,
+          likeCount: post._count.likes,
+        }}),
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch posts' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Create a new post
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
+    const { caption, content, mediaUrls, mediaType, visibility, isLocked, tags } = body;
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!user.isCreator) {
+      return NextResponse.json(
+        { error: 'User must be a creator to post content' },
+        { status: 403 }
+      );
+    }
+
+    // Get creator profile
+    const creator = await prisma.creator.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!creator) {
+      return NextResponse.json(
+        { error: 'Creator profile not found' },
+        { status: 404 }
+      );
+    }
+
+    // Validate mediaUrls
+    if (!mediaUrls || mediaUrls.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one media URL is required' },
+        { status: 400 }
+      );
+    }
+
+    const post = await prisma.post.create({
+      data: {
+        userId: user.id,
+        creatorId: creator.id,
+        caption: caption || null,
+        content: content || null,
+        mediaUrls: mediaUrls,
+        mediaType: mediaType || 'image',
+        visibility: visibility || 'PUBLIC',
+        isLocked: isLocked || false,
+        tags: tags || [],
+      },
+      include: {
+        creator: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(post, { status: 201 });
+  } catch (error) {
+    console.error('Error creating post:', error);
+    return NextResponse.json(
+      { error: 'Failed to create post' },
+      { status: 500 }
+    );
+  }
+}
